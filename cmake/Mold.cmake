@@ -1,0 +1,7 @@
+include(cmake/ProjectIsTopLevel.cmake)
+if(PROJECT_IS_TOP_LEVEL)
+  find_program(MOLD mold)
+  if(MOLD)
+    add_link_options(-fuse-ld=mold)
+  endif()
+endif()

@@ -1,0 +1,13 @@
+.vscode/launch.json
+.vscode/settings.json
+.idea/
+.venv/
+build/
+CMakeUserPresets.json
+node_modules/
+
+scratch/
+auth.txt
+log.txt
+notes.txt
+*.db3
