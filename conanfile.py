@@ -21,6 +21,7 @@ class Pkg(ConanFile):
     def build_requirements(self):
         self.test_requires("gtest/1.14.0")
         self.test_requires("benchmark/1.9.0")
+        self.test_requires("xoshiro-cpp/1.1")
 
     def configure(self):
         self.options["mongo-cxx-driver"].polyfill = "std"
