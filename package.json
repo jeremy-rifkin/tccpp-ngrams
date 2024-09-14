@@ -1,0 +1,47 @@
+{
+    "name": "tccpp-ngrams",
+    "author": "Jeremy Rifkin",
+    "license": "MIT",
+    "description": "",
+    "version": "1.0.0",
+    "main": "server/app.ts",
+    "type": "module",
+    "directories": {
+        "test": "test"
+    },
+    "scripts": {
+        "dev": "nodemon -I --exec node --loader ts-node/esm server/app.ts",
+        "build": "webpack && tsc",
+        "start": "node build/server/app.js",
+        "format": "prettier . --write",
+        "format-check": "prettier . --check",
+        "format-files": "prettier . --write --ignore-unknown"
+    },
+    "dependencies": {
+        "@observablehq/plot": "^0.6.15",
+        "@types/d3": "^7.4.3",
+        "@types/express": "^4.17.21",
+        "@types/node": "^20.14.12",
+        "chart.js": "^4.4.3",
+        "css-loader": "^7.1.2",
+        "d3": "^7.9.0",
+        "express": "^4.19.2",
+        "html-loader": "^5.1.0",
+        "html-webpack-plugin": "^5.6.0",
+        "nodemon": "^3.1.4",
+        "sass": "^1.77.8",
+        "sass-loader": "^16.0.0",
+        "sqlite3": "^5.1.7",
+        "style-loader": "^4.0.0",
+        "ts-loader": "^9.5.1",
+        "ts-node": "^10.9.2",
+        "typescript": "^5.5.4",
+        "webpack-cli": "^5.1.4",
+        "webpack-dev-middleware": "^7.3.0",
+        "webpack-dev-server": "^5.0.4"
+    },
+    "devDependencies": {
+        "prettier": "^3.3.3",
+        "ts-node-dev": "^2.0.0"
+    }
+}

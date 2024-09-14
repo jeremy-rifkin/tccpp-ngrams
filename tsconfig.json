@@ -1,0 +1,19 @@
+{
+    "files": ["server/app.ts"],
+    "include": ["**/*.js", "**/*.ts", "webpack.config.cjs"],
+    "exclude": ["**/*.d.ts", "ui", "build"],
+    "compilerOptions": {
+        "target": "esnext",
+        "module": "NodeNext",
+        "moduleResolution": "nodenext",
+        "strict": true,
+        "resolveJsonModule": true,
+        "allowJs": true,
+        "strictPropertyInitialization": false,
+        "noImplicitOverride": true,
+        "outDir": "build/server",
+        "esModuleInterop": true,
+        "incremental": true,
+        "sourceMap": true
+    }
+}

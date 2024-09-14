@@ -63,7 +63,6 @@ benchmark:  ## benchmark-release
 .PHONY: benchmark-release
 benchmark-release: benchmark  ## benchmark-release
 
-
 .PHONY: clean
 clean:  ## clean the build folder
 	rm -rf build
@@ -71,3 +70,18 @@ clean:  ## clean the build folder
 .PHONY: clean-all
 clean-all: clean  ## clean everything created by make
 	rm -rf .venv
+
+NODE:=node
+NPM:=npm
+
+.PHONY: prereqs
+prereqs: package.json package-lock.json
+	$(NPM) i
+
+.PHONY: dev
+dev: prereqs  ## Launch dev server for the UI
+	$(NPM) run dev
+
+.PHONY: format
+format: prereqs  ## Formats source files
+	$(NPM) run format

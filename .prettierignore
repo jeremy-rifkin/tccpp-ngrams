@@ -1,0 +1,9 @@
+.vscode
+.idea
+node_modules
+build
+.venv
+scratch
+src
+test
+package-lock.json
