@@ -62,6 +62,9 @@ body {
     #chart {
         width: 1500px;
         height: 800px;
+        .legend-text-swatch {
+            font-size: 15px;
+        }
     }
 
     footer {

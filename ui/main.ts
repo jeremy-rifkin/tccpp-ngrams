@@ -42,12 +42,15 @@ class App {
     }
 
     prepare_data(raw_data: query_response) {
+        const last_bucket = Math.max(
+            ...Object.values(raw_data).map(series => Math.max(...series.map(entry => entry.year_month))),
+        );
         // fill in gaps
         for (const series of Object.values(raw_data)) {
             series.sort((a, b) => a.year_month - b.year_month);
-            for (let i = 0; i < series.length; i++) {
-                if (series[i].year_month != App.months_after_first_bucket(i)) {
-                    series.splice(i, 0, { year_month: App.months_after_first_bucket(i), frequency: 0 });
+            for (let month = 0; App.months_after_first_bucket(month) <= last_bucket; month++) {
+                if (month >= series.length || App.months_after_first_bucket(month) < series[month].year_month) {
+                    series.splice(month, 0, { year_month: App.months_after_first_bucket(month), frequency: 0 });
                 }
             }
         }
@@ -72,10 +75,7 @@ class App {
             marginLeft: 50,
             marginBottom: 50,
             marginRight: 100,
-            y: {
-                label: "Frequency",
-                tickFormat: value => value.toExponential(0),
-            },
+            color: { legend: data.length > 0, className: "legend-text" } as Plot.ScaleOptions,
             marks: [
                 Plot.lineY(data, {
                     x: "date",
@@ -83,6 +83,7 @@ class App {
                     stroke: "ngram",
                     z: "ngram",
                 }),
+                Plot.axisY({ label: "Frequency", marginBottom: 10, tickFormat: value => value.toExponential(0) }),
                 Plot.text(
                     data,
                     occlusionY(
