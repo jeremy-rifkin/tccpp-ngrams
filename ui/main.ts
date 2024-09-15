@@ -3,7 +3,7 @@ require("./style.scss");
 import * as d3 from "d3";
 import * as Plot from "@observablehq/plot";
 
-import { query_response } from "../server/schema.js";
+import { entry, query_response, query_result } from "../server/schema.js";
 import { debounce, http_get } from "./utils";
 import { occlusionY } from "./occlusion";
 
@@ -42,12 +42,16 @@ class App {
     }
 
     prepare_data(raw_data: query_response) {
+        // we get an array of results for each part of the query
+        // we want to consolidate down to a single dict, keeping the order (we use that for the color domain)
+        const consolidated_result: query_result = Object.fromEntries(raw_data.map(Object.entries).flat(1));
         const last_bucket = Math.max(
-            ...Object.values(raw_data).map(series => Math.max(...series.map(entry => entry.year_month))),
+            ...Object.values(consolidated_result).map(series => Math.max(...series.map(entry => entry.year_month))),
         );
         // fill in gaps
-        for (const series of Object.values(raw_data)) {
+        for (const series of Object.values(consolidated_result)) {
             series.sort((a, b) => a.year_month - b.year_month);
+            // there should be an entry for each moth from first bucket to last bucket, fill in gaps with 0's
             for (let month = 0; App.months_after_first_bucket(month) <= last_bucket; month++) {
                 if (month >= series.length || App.months_after_first_bucket(month) < series[month].year_month) {
                     series.splice(month, 0, { year_month: App.months_after_first_bucket(month), frequency: 0 });
@@ -55,18 +59,22 @@ class App {
             }
         }
         // pivot
-        const data = Object.entries(raw_data)
+        const data = Object.entries(consolidated_result)
             .map(([ngram, entries]) => {
                 return entries.map(({ year_month, frequency }) => {
                     return { date: new Date(year_month), frequency, ngram };
                 });
             })
             .flat();
-        return data;
+        return [Object.keys(consolidated_result), data] as [string[], {
+            date: Date;
+            frequency: number;
+            ngram: string;
+        }[]];
     }
 
     render_chart(raw_data: query_response) {
-        const data = this.prepare_data(raw_data);
+        const [domain, data] = this.prepare_data(raw_data);
         const plot = Plot.plot({
             grid: true,
             width: 1500,
@@ -75,7 +83,7 @@ class App {
             marginLeft: 50,
             marginBottom: 50,
             marginRight: 100,
-            color: { legend: data.length > 0, className: "legend-text" } as Plot.ScaleOptions,
+            color: { legend: data.length > 0, className: "legend-text", domain } as Plot.ScaleOptions,
             marks: [
                 Plot.lineY(data, {
                     x: "date",
