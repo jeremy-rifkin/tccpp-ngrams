@@ -180,7 +180,7 @@ class App {
     }
 
     do_query() {
-        http_get(`/query?q=${encodeURIComponent(this.query)}`, (res: string) => {
+        http_get(`/query?q=${encodeURIComponent(this.query)}&ci=${this.case_insensitive}`, (res: string) => {
             const raw_data = JSON.parse(res) as query_response;
             this.render_chart(raw_data);
         });
