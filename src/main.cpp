@@ -58,11 +58,11 @@ Counts preprocess(MessageDatabaseManager& db) {
     });
     spdlog::info("Finished preprocessing");
     spdlog::info("Finished preprocessing, 1-grams with 10 or more occurrences:");
-    for(const auto& [k, v] : counts) {
-        if(v >= 10) {
-            fmt::println("{}\t{}", k, v);
-        }
-    }
+    // for(const auto& [k, v] : counts) {
+    //     if(v >= 10) {
+    //         fmt::println("{}\t{}", k, v);
+    //     }
+    // }
     return counts;
 }
 
@@ -83,14 +83,15 @@ void aggregate(MessageDatabaseManager& db, const Counts& preprocessed_counts) {
         std::filesystem::remove("test.db3");
     }
     SQLite::Database aggdb{"test.db3", SQLite::OPEN_READWRITE | SQLite::OPEN_CREATE};
-    aggdb.exec("CREATE TABLE ngrams (ngram_id INTEGER PRIMARY KEY, ngram TEXT)");
+    aggdb.exec("CREATE TABLE ngrams (ngram_id INTEGER PRIMARY KEY, ngram TEXT, total INTEGER)");
     aggdb.exec("CREATE TABLE frequencies (months_since_epoch INTEGER, ngram_id INTEGER, frequency REAL)");
     {
-        SQLite::Statement ngram_insert = SQLite::Statement{aggdb, "INSERT INTO ngrams (ngram_id, ngram) VALUES (?, ?)"};
+        SQLite::Statement ngram_insert = SQLite::Statement{aggdb, "INSERT INTO ngrams (ngram_id, ngram, total) VALUES (?, ?, ?)"};
         SQLite::Transaction transaction(aggdb);
         for(const auto& [gram, entry] : counts) {
             ngram_insert.bind(1, entry.id);
             ngram_insert.bind(2, gram);
+            ngram_insert.bind(3, preprocessed_counts.at(gram));
             ngram_insert.exec();
             ngram_insert.reset();
         }
@@ -144,6 +145,7 @@ void aggregate(MessageDatabaseManager& db, const Counts& preprocessed_counts) {
     spdlog::info("Finished aggregating, creating indexes");
     aggdb.exec("CREATE INDEX ngrams_ngram_id ON ngrams(ngram_id);");
     aggdb.exec("CREATE INDEX ngrams_ngram ON ngrams(ngram);");
+    aggdb.exec("CREATE INDEX ngrams_total ON ngrams(total);");
     aggdb.exec("CREATE INDEX frequencies_ngram_id ON frequencies(ngram_id);");
     aggdb.exec("CREATE INDEX frequencies_months_since_epoch ON frequencies(months_since_epoch);");
     spdlog::info("Finished");
