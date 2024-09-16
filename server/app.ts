@@ -7,30 +7,65 @@ const app = express();
 const port = 3000;
 
 import sqlite3 from "sqlite3";
-import { query_response, query_result } from "./schema.js";
+import { encoded_query_response, encoded_query_result, query_response, query_result } from "./schema.js";
 const db = new sqlite3.Database("test.db3", sqlite3.OPEN_READONLY);
 
 function formulate_query(part: string, case_insensitive: boolean) {
     if (case_insensitive) {
         return [
+            // `
+            // SELECT
+            //     LOWER(ngrams.ngram) AS ngram, frequencies.months_since_epoch, SUM(frequencies.frequency) AS frequency
+            // FROM frequencies
+            // INNER JOIN ngrams ON ngrams.ngram_id = frequencies.ngram_id
+            // WHERE LOWER(ngrams.ngram) GLOB ?
+            // GROUP BY LOWER(ngrams.ngram), frequencies.months_since_epoch;
+            // `,
+            // `
+            // SELECT
+            //     ngrams.ngram, frequencies.months_since_epoch, frequencies.frequency
+            // FROM frequencies
+            // INNER JOIN ngrams ON ngrams.ngram_id = frequencies.ngram_id
+            // WHERE LOWER(ngrams.ngram) GLOB ?;
+            // `,
             `
+            WITH top_ngrams AS (
+                SELECT ngram_id, ngram
+                FROM ngrams
+                WHERE LOWER(ngrams.ngram) GLOB ?
+                ORDER BY total DESC
+                LIMIT 10
+            )
             SELECT
-                LOWER(ngrams.ngram) AS ngram, frequencies.months_since_epoch, SUM(frequencies.frequency) AS frequency
+                top_ngrams.ngram, frequencies.months_since_epoch, frequencies.frequency
             FROM frequencies
-            INNER JOIN ngrams ON ngrams.ngram_id = frequencies.ngram_id
-            WHERE LOWER(ngrams.ngram) = ?
-            GROUP BY LOWER(ngrams.ngram), frequencies.months_since_epoch;
+            INNER JOIN top_ngrams ON top_ngrams.ngram_id = frequencies.ngram_id
+            ORDER BY top_ngrams.ngram, frequencies.months_since_epoch;
             `,
             part.toLowerCase(),
         ] as [string, string];
     } else {
         return [
+            // `
+            // SELECT
+            //     ngrams.ngram, frequencies.months_since_epoch, frequencies.frequency
+            // FROM frequencies
+            // INNER JOIN ngrams ON ngrams.ngram_id = frequencies.ngram_id
+            // WHERE ngrams.ngram GLOB ?;
+            // `,
             `
+            WITH top_ngrams AS (
+                SELECT ngram_id, ngram
+                FROM ngrams
+                WHERE ngrams.ngram GLOB ?
+                ORDER BY total DESC
+                LIMIT 10
+            )
             SELECT
-                ngrams.ngram, frequencies.months_since_epoch, frequencies.frequency
+                top_ngrams.ngram, frequencies.months_since_epoch, frequencies.frequency
             FROM frequencies
-            INNER JOIN ngrams ON ngrams.ngram_id = frequencies.ngram_id
-            WHERE ngrams.ngram = ?;
+            INNER JOIN top_ngrams ON top_ngrams.ngram_id = frequencies.ngram_id
+            ORDER BY top_ngrams.ngram, frequencies.months_since_epoch;
             `,
             part,
         ] as [string, string];
@@ -39,17 +74,17 @@ function formulate_query(part: string, case_insensitive: boolean) {
 
 function do_query(part: string, case_insensitive: boolean): Promise<query_result> {
     return new Promise<query_result>((resolve, reject) => {
-        const data: query_result = {};
+        const data: query_result = new Map();
         db.each(
             ...formulate_query(part, case_insensitive),
             (err, row: { ngram: string; months_since_epoch: number; frequency: number }) => {
                 if (err) {
                     reject(err);
                 }
-                if (!(row.ngram in data)) {
-                    data[row.ngram] = [];
+                if (!data.has(row.ngram)) {
+                    data.set(row.ngram, []);
                 }
-                data[row.ngram].push({
+                data.get(row.ngram)!.push({
                     year_month: Date.UTC(2017, row.months_since_epoch),
                     frequency: row.frequency,
                 });
@@ -76,7 +111,7 @@ app.get("/query", (req, res) => {
     } else {
         handle_query(raw_query, case_insensitive).then((data: query_response) => {
             res.setHeader("Content-Type", "application/json");
-            res.end(JSON.stringify(data));
+            res.end(JSON.stringify(data.map(result => Array.from(result)) as encoded_query_response));
         }).catch(() => {
             res.status(500);
             res.end();

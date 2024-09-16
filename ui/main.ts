@@ -3,7 +3,7 @@ require("./style.scss");
 import * as d3 from "d3";
 import * as Plot from "@observablehq/plot";
 
-import { entry, query_response, query_result } from "../server/schema.js";
+import { encoded_query_response, entry, query_response, query_result } from "../server/schema.js";
 import { debounce, http_get } from "./utils";
 import { occlusionY } from "./occlusion";
 
@@ -41,15 +41,15 @@ class App {
         return Date.UTC(this.first_bucket[0], this.first_bucket[1] + months);
     }
 
-    prepare_data(raw_data: query_response) {
+    prepare_data(raw_data: encoded_query_response) {
         // we get an array of results for each part of the query
         // we want to consolidate down to a single dict, keeping the order (we use that for the color domain)
-        const consolidated_result: query_result = Object.fromEntries(raw_data.map(Object.entries).flat(1));
+        const consolidated_result: query_result = new Map(raw_data.flat(1));
         const last_bucket = Math.max(
-            ...Object.values(consolidated_result).map(series => Math.max(...series.map(entry => entry.year_month))),
+            ...[...consolidated_result.values()].map(series => Math.max(...series.map(entry => entry.year_month))),
         );
         // fill in gaps
-        for (const series of Object.values(consolidated_result)) {
+        for (const series of consolidated_result.values()) {
             series.sort((a, b) => a.year_month - b.year_month);
             // there should be an entry for each moth from first bucket to last bucket, fill in gaps with 0's
             for (let month = 0; App.months_after_first_bucket(month) <= last_bucket; month++) {
@@ -59,21 +59,21 @@ class App {
             }
         }
         // pivot
-        const data = Object.entries(consolidated_result)
+        const data = [...consolidated_result.entries()]
             .map(([ngram, entries]) => {
                 return entries.map(({ year_month, frequency }) => {
                     return { date: new Date(year_month), frequency, ngram };
                 });
             })
             .flat();
-        return [Object.keys(consolidated_result), data] as [string[], {
+        return [[...consolidated_result.keys()], data] as [string[], {
             date: Date;
             frequency: number;
             ngram: string;
         }[]];
     }
 
-    render_chart(raw_data: query_response) {
+    render_chart(raw_data: encoded_query_response) {
         const [domain, data] = this.prepare_data(raw_data);
         const plot = Plot.plot({
             grid: true,
@@ -140,7 +140,7 @@ class App {
                                         ).append(() =>
                                             Plot.plot({
                                                 marginTop: 14,
-                                                height: 25 * Object.keys(raw_data).length,
+                                                height: 25 * domain.length,
                                                 width: 130,
                                                 axis: null,
                                                 marks: [
@@ -190,7 +190,7 @@ class App {
 
     do_query() {
         http_get(`/query?q=${encodeURIComponent(this.query)}&ci=${this.case_insensitive}`, (res: string) => {
-            const raw_data = JSON.parse(res) as query_response;
+            const raw_data = JSON.parse(res) as encoded_query_response;
             this.render_chart(raw_data);
         });
     }
