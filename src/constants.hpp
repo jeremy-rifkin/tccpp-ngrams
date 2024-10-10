@@ -15,6 +15,10 @@ constexpr std::array bot_ids = {
     "1013960757127422113"sv // dyno
 };
 
+constexpr std::array blacklisted_channels = {
+    "506274405500977153"sv // bot-spam
+};
+
 inline bool is_bot_id(std::string_view sv) {
     return std::ranges::contains(bot_ids, sv);
 }

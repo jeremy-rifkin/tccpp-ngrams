@@ -11,16 +11,25 @@
 #include <spdlog/spdlog.h>
 
 #include "utils.hpp"
+#include "constants.hpp"
 
 MessageDatabaseManager::MessageDatabaseManager(const std::string& auth_url) : connection(mongocxx::uri{auth_url}), db(connection["wheatley"]) {
     load_channel_thread_stati();
 }
 
 MessageDatabaseReader MessageDatabaseManager::make_message_database_reader() {
+    auto excluded_channels = private_channel_list();
+    for(const auto& channel : blacklisted_channels) {
+        excluded_channels.append(channel);
+    }
     auto filter = bsoncxx::builder::basic::make_document(
         bsoncxx::builder::basic::kvp(
             "channel",
-            bsoncxx::builder::basic::make_document(bsoncxx::builder::basic::kvp("$nin", private_channel_list()))
+            bsoncxx::builder::basic::make_document(bsoncxx::builder::basic::kvp("$nin", excluded_channels))
+        ),
+        bsoncxx::builder::basic::kvp(
+            "deleted",
+            bsoncxx::builder::basic::make_document(bsoncxx::builder::basic::kvp("$exists", false))
         )
     );
     mongocxx::options::find opts;
