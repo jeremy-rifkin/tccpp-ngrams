@@ -4,8 +4,6 @@
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
-#include <functional>
-#include <iostream>
 #include <ranges>
 
 #include <ankerl/unordered_dense.h>
@@ -44,25 +42,43 @@ struct entry {
     std::uint32_t count;
 };
 
-using Counts = string_map<std::uint32_t>;
-using AugmentedCounts = string_map<entry>;
+using Counts = std::tuple<
+    ngram_map<1, std::uint32_t>,
+    ngram_map<2, std::uint32_t>,
+    ngram_map<3, std::uint32_t>,
+    ngram_map<4, std::uint32_t>,
+    ngram_map<5, std::uint32_t>
+>;
+using AugmentedCounts = std::tuple<
+    ngram_map<1, entry>,
+    ngram_map<2, entry>,
+    ngram_map<3, entry>,
+    ngram_map<4, entry>,
+    ngram_map<5, entry>
+>;
 
 Counts preprocess(MessageDatabaseManager& db) {
     spdlog::info("Preprocessing");
     Counts counts;
     auto reader = db.make_message_database_reader();
     process_messages(reader, [&](sys_ms, std::string_view content) {
-        ngrams(content, [&](std::string_view gram) {
-            counts[gram]++;
+        ngrams(content, [&](const ngram_window& ngram) {
+            indexinator<ngram_max_width>([&] <auto I> {
+                if(auto value = ngram.subview<I + 1>()) {
+                    std::get<I>(counts)[*value]++;
+                }
+            });
         });
     });
     spdlog::info("Finished preprocessing");
     spdlog::info("Finished preprocessing, 1-grams with 10 or more occurrences:");
-    // for(const auto& [k, v] : counts) {
-    //     if(v >= 10) {
-    //         fmt::println("{}\t{}", k, v);
+    // indexinator<ngram_max_width>([&] <auto I> {
+    //     for(const auto& [k, v] : std::get<I>(counts)) {
+    //         if(v >= 20) {
+    //             fmt::println("{}\t{}", k, v);
+    //         }
     //     }
-    // }
+    // });
     return counts;
 }
 
@@ -72,52 +88,79 @@ void aggregate(MessageDatabaseManager& db, const Counts& preprocessed_counts) {
     spdlog::info("Preparing counts");
     AugmentedCounts counts;
     std::uint32_t id = 0;
-    for(const auto& [k, v] : preprocessed_counts) {
-        if(v >= 20) {
-            counts.emplace(k, id++);
+    indexinator<ngram_max_width>([&] <auto I> {
+        for(const auto& [k, v] : std::get<I>(preprocessed_counts)) {
+            if(v >= 20) {
+                std::get<I>(counts).emplace(k, id++);
+            }
         }
-    }
+    });
 
     spdlog::info("Preparing db");
     if(std::filesystem::exists("test.db3")) {
         std::filesystem::remove("test.db3");
     }
     SQLite::Database aggdb{"test.db3", SQLite::OPEN_READWRITE | SQLite::OPEN_CREATE};
-    aggdb.exec("CREATE TABLE ngrams (ngram_id INTEGER PRIMARY KEY, ngram TEXT, total INTEGER)");
     aggdb.exec("CREATE TABLE frequencies (months_since_epoch INTEGER, ngram_id INTEGER, frequency REAL)");
-    {
-        SQLite::Statement ngram_insert = SQLite::Statement{aggdb, "INSERT INTO ngrams (ngram_id, ngram, total) VALUES (?, ?, ?)"};
+    indexinator<ngram_max_width>([&] <auto I> {
+        auto text_columns = std::ranges::iota_view{std::size_t(0), I + 1} | std::views::transform([](auto i) {
+            return fmt::format("gram_{}", i);
+        });
+        aggdb.exec(
+            fmt::format(
+                "CREATE TABLE ngrams_{} (ngram_id INTEGER PRIMARY KEY, {}, total INTEGER)",
+                I + 1,
+                fmt::join(
+                    text_columns | std::views::transform([](auto&& name){ return fmt::format("{} TEXT", name); }),
+                    ", "
+                )
+            )
+        );
+        auto query = fmt::format(
+            "INSERT INTO ngrams_{} (ngram_id, {}, total) VALUES (?, {}, ?)",
+            I + 1,
+            fmt::join(text_columns, ", "),
+            fmt::join(text_columns | std::views::transform([](auto&&){ return '?'; }), ", ")
+        );
+        SQLite::Statement ngram_insert = SQLite::Statement{aggdb, query};
         SQLite::Transaction transaction(aggdb);
-        for(const auto& [gram, entry] : counts) {
+        for(const auto& [ngram, entry] : std::get<I>(counts)) {
             ngram_insert.bind(1, entry.id);
-            ngram_insert.bind(2, gram);
-            ngram_insert.bind(3, preprocessed_counts.at(gram));
+            for(const auto& [i, gram] : std::views::enumerate(ngram)) {
+                ngram_insert.bind(2 + i, gram);
+            }
+            ngram_insert.bind(2 + ngram.size(), std::get<I>(preprocessed_counts).at(ngram));
             ngram_insert.exec();
             ngram_insert.reset();
         }
         transaction.commit();
-    }
-    SQLite::Statement insert = SQLite::Statement{aggdb, "INSERT INTO frequencies (months_since_epoch, ngram_id, frequency) VALUES (?, ?, ?)"};
+    });
+    SQLite::Statement frequency_insert = SQLite::Statement{
+        aggdb,
+        "INSERT INTO frequencies (months_since_epoch, ngram_id, frequency) VALUES (?, ?, ?)"
+    };
 
     spdlog::info("Aggregating");
 
     auto reader = db.make_message_database_reader();
 
     std::uint64_t total_for_month = 0;
-    auto flush = [&](std::chrono::year_month date) {
+    auto flush = [&](std::chrono::year_month date) mutable {
         SQLite::Transaction transaction(aggdb);
-        for(auto& [k, entry] : counts) {
-            if(entry.count == 0) {
-                continue;
+        indexinator<ngram_max_width>([&] <auto I> {
+            for(auto& [k, entry] : std::get<I>(counts)) {
+                if(entry.count == 0) {
+                    continue;
+                }
+                auto months_since_epoch = date - agg_epoch;
+                frequency_insert.bind(1, months_since_epoch.count());
+                frequency_insert.bind(2, entry.id);
+                frequency_insert.bind(3, entry.count / double(total_for_month));
+                frequency_insert.exec();
+                frequency_insert.reset();
+                entry.count = 0;
             }
-            auto months_since_epoch = date - agg_epoch;
-            insert.bind(1, months_since_epoch.count());
-            insert.bind(2, entry.id);
-            insert.bind(3, entry.count / double(total_for_month));
-            insert.exec();
-            insert.reset();
-            entry.count = 0;
-        }
+        });
         transaction.commit();
         total_for_month = 0;
     };
@@ -134,18 +177,32 @@ void aggregate(MessageDatabaseManager& db, const Counts& preprocessed_counts) {
             flush(*last_year_month);
             last_year_month = year_month;
         }
-        ngrams(content, [&](std::string_view gram) {
-            if(auto it = counts.find(gram); it != counts.end()) {
-                it->second.count++;
-                total_for_month++;
-            }
+        ngrams(content, [&](const ngram_window& ngram) {
+            indexinator<ngram_max_width>([&] <auto I> {
+                if(auto value = ngram.subview<I + 1>()) {
+                    auto& the_counts = std::get<I>(counts);
+                    if(auto it = the_counts.find(*value); it != the_counts.end()) {
+                        it->second.count++;
+                        if(I == 0) { // TODO: Is it right to just count per one-gram?
+                            total_for_month++;
+                        }
+                    }
+                }
+            });
         });
     });
 
     spdlog::info("Finished aggregating, creating indexes");
-    aggdb.exec("CREATE INDEX ngrams_ngram_id ON ngrams(ngram_id);");
-    aggdb.exec("CREATE INDEX ngrams_ngram ON ngrams(ngram);");
-    aggdb.exec("CREATE INDEX ngrams_total ON ngrams(total);");
+    indexinator<ngram_max_width>([&] <auto I> {
+        auto text_columns = std::ranges::iota_view{std::size_t(0), I + 1} | std::views::transform([](auto i) {
+            return fmt::format("gram_{}", i);
+        });
+        aggdb.exec(fmt::format("CREATE INDEX ngrams_{0}_ngram_id ON ngrams_{0}(ngram_id);", I + 1));
+        for(const auto& column : text_columns) {
+            aggdb.exec(fmt::format("CREATE INDEX ngrams_{0}_{1} ON ngrams_{0}({1});", I + 1, column));
+        }
+        aggdb.exec(fmt::format("CREATE INDEX ngrams_{0}_total ON ngrams_{0}(total);", I + 1));
+    });
     aggdb.exec("CREATE INDEX frequencies_ngram_id ON frequencies(ngram_id);");
     aggdb.exec("CREATE INDEX frequencies_months_since_epoch ON frequencies(months_since_epoch);");
     spdlog::info("Finished");

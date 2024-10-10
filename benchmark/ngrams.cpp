@@ -64,7 +64,12 @@ static void Ngrams(benchmark::State& state) {
     XoshiroCpp::Xoshiro128Plus rng(42);
     std::uint64_t count = 0;
     for (auto _ : state) {
-        ngrams(messages[rng() & (messages.size() - 1)], [&](std::string_view) {
+        ngrams(messages[rng() & (messages.size() - 1)], [&](const ngram_window& container) {
+            benchmark::DoNotOptimize(container.subview<1>());
+            benchmark::DoNotOptimize(container.subview<2>());
+            benchmark::DoNotOptimize(container.subview<3>());
+            benchmark::DoNotOptimize(container.subview<4>());
+            benchmark::DoNotOptimize(container.subview<5>());
             count++;
         });
         benchmark::DoNotOptimize(count);
