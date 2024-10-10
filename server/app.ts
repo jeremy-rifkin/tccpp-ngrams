@@ -10,81 +10,73 @@ import sqlite3 from "sqlite3";
 import { encoded_query_response, encoded_query_result, query_response, query_result } from "./schema.js";
 const db = new sqlite3.Database("test.db3", sqlite3.OPEN_READONLY);
 
-function formulate_query(part: string, case_insensitive: boolean) {
+function tokenize(part: string) {
+    return part.split(/(\s+)/).filter(e => e.trim().length > 0);
+}
+
+function formulate_query(part: string[], case_insensitive: boolean): [query: string, ...params: (string | number)[]] {
+    const column_names = [...part.map((_, i) => `gram_${i}`)];
     if (case_insensitive) {
         return [
-            // `
-            // SELECT
-            //     LOWER(ngrams.ngram) AS ngram, frequencies.months_since_epoch, SUM(frequencies.frequency) AS frequency
-            // FROM frequencies
-            // INNER JOIN ngrams ON ngrams.ngram_id = frequencies.ngram_id
-            // WHERE LOWER(ngrams.ngram) GLOB ?
-            // GROUP BY LOWER(ngrams.ngram), frequencies.months_since_epoch;
-            // `,
-            // `
-            // SELECT
-            //     ngrams.ngram, frequencies.months_since_epoch, frequencies.frequency
-            // FROM frequencies
-            // INNER JOIN ngrams ON ngrams.ngram_id = frequencies.ngram_id
-            // WHERE LOWER(ngrams.ngram) GLOB ?;
-            // `,
             `
             WITH top_ngrams AS (
-                SELECT ngram_id, ngram
-                FROM ngrams
-                WHERE LOWER(ngrams.ngram) GLOB ?
+                SELECT ngram_id, ${column_names.join(", ")}
+                FROM ngrams_${column_names.length}
+                WHERE
+                    ${column_names.map(column => `LOWER(ngrams_${column_names.length}.${column}) GLOB ?`).join(" AND ")}
                 ORDER BY total DESC
                 LIMIT 10
             )
             SELECT
-                top_ngrams.ngram, frequencies.months_since_epoch, frequencies.frequency
+                ${column_names.map(column => `top_ngrams.${column}`).join(", ")}, frequencies.months_since_epoch, frequencies.frequency
             FROM frequencies
             INNER JOIN top_ngrams ON top_ngrams.ngram_id = frequencies.ngram_id
-            ORDER BY top_ngrams.ngram, frequencies.months_since_epoch;
+            ORDER BY ${column_names.map(column => `top_ngrams.${column}`).join(", ")}, frequencies.months_since_epoch;
             `,
-            part.toLowerCase(),
-        ] as [string, string];
+            ...part.map(s => s.toLocaleLowerCase()),
+        ];
     } else {
         return [
-            // `
-            // SELECT
-            //     ngrams.ngram, frequencies.months_since_epoch, frequencies.frequency
-            // FROM frequencies
-            // INNER JOIN ngrams ON ngrams.ngram_id = frequencies.ngram_id
-            // WHERE ngrams.ngram GLOB ?;
-            // `,
             `
             WITH top_ngrams AS (
-                SELECT ngram_id, ngram
-                FROM ngrams
-                WHERE ngrams.ngram GLOB ?
+                SELECT ngram_id, ${column_names.join(", ")}
+                FROM ngrams_${column_names.length}
+                WHERE
+                    ${column_names.map(column => `ngrams_${column_names.length}.${column} GLOB ?`).join(" AND ")}
                 ORDER BY total DESC
                 LIMIT 10
             )
             SELECT
-                top_ngrams.ngram, frequencies.months_since_epoch, frequencies.frequency
+                ${column_names.map(column => `top_ngrams.${column}`).join(", ")}, frequencies.months_since_epoch, frequencies.frequency
             FROM frequencies
             INNER JOIN top_ngrams ON top_ngrams.ngram_id = frequencies.ngram_id
-            ORDER BY top_ngrams.ngram, frequencies.months_since_epoch;
+            ORDER BY ${column_names.map(column => `top_ngrams.${column}`).join(", ")}, frequencies.months_since_epoch;
             `,
-            part,
-        ] as [string, string];
+            ...part,
+        ];
     }
 }
 
 function do_query(part: string, case_insensitive: boolean): Promise<query_result> {
     return new Promise<query_result>((resolve, reject) => {
+        const tokenized_part = tokenize(part);
+        if (tokenized_part.length > 5) {
+            reject("Too many grams");
+        }
         const data: query_result = new Map();
+        const [query, ...params] = formulate_query(tokenized_part, case_insensitive);
         db.each(
-            ...formulate_query(part, case_insensitive),
-            (err, row: { ngram: string; months_since_epoch: number; frequency: number }) => {
+            query,
+            ...params,
+            (err: any, row: { months_since_epoch: number; frequency: number } & Record<string, string>) => {
                 if (err) {
                     reject(err);
                 }
-                if (!data.has(row.ngram)) {
-                    data.set(row.ngram, []);
+                const ngram = [...Array(tokenized_part.length).keys()].map(i => row[`gram_${i}`]).join(" ");
+                if (!data.has(ngram)) {
+                    data.set(ngram, []);
                 }
-                data.get(row.ngram)!.push({
+                data.get(ngram)!.push({
                     year_month: Date.UTC(2017, row.months_since_epoch),
                     frequency: row.frequency,
                 });
@@ -109,13 +101,15 @@ app.get("/query", (req, res) => {
         res.status(500);
         res.end();
     } else {
-        handle_query(raw_query, case_insensitive).then((data: query_response) => {
-            res.setHeader("Content-Type", "application/json");
-            res.end(JSON.stringify(data.map(result => Array.from(result)) as encoded_query_response));
-        }).catch(() => {
-            res.status(500);
-            res.end();
-        });
+        handle_query(raw_query, case_insensitive)
+            .then((data: query_response) => {
+                res.setHeader("Content-Type", "application/json");
+                res.end(JSON.stringify(data.map(result => Array.from(result)) as encoded_query_response));
+            })
+            .catch(() => {
+                res.status(500);
+                res.end();
+            });
     }
 });
 
