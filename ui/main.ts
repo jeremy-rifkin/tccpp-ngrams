@@ -66,11 +66,14 @@ class App {
                 });
             })
             .flat();
-        return [[...consolidated_result.keys()], data] as [string[], {
-            date: Date;
-            frequency: number;
-            ngram: string;
-        }[]];
+        return [[...consolidated_result.keys()], data] as [
+            string[],
+            {
+                date: Date;
+                frequency: number;
+                ngram: string;
+            }[],
+        ];
     }
 
     render_chart(raw_data: encoded_query_response) {
@@ -79,7 +82,7 @@ class App {
             grid: true,
             width: 1500,
             height: 800,
-            style: { fontSize: "16px" },
+            style: { fontSize: "16px", overflow: "visible" },
             marginLeft: 50,
             marginBottom: 50,
             marginRight: 100,
@@ -101,6 +104,7 @@ class App {
                             y: "frequency",
                             z: "ngram",
                             text: "ngram",
+                            fill: "ngram",
                             textAnchor: "start",
                             dx: 3,
                         }),

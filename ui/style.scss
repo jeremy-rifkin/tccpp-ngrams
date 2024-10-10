@@ -65,6 +65,9 @@ body {
         .legend-text-swatch {
             font-size: 15px;
         }
+        & > figure {
+            overflow: visible;
+        }
     }
 
     footer {
