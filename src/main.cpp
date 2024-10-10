@@ -8,6 +8,7 @@
 
 #include <ankerl/unordered_dense.h>
 #include <cpptrace/cpptrace.hpp>
+#include <cpptrace/from_current.hpp>
 #include <fmt/chrono.h>
 #include <fmt/format.h>
 #include <libassert/assert.hpp>
@@ -208,7 +209,7 @@ void aggregate(MessageDatabaseManager& db, const Counts& preprocessed_counts) {
     spdlog::info("Finished");
 }
 
-int main() {
+int main() CPPTRACE_TRY {
     spdlog::info("Starting up");
     std::ifstream auth_file("auth.txt");
     std::string auth_url{std::istreambuf_iterator<char>(auth_file), std::istreambuf_iterator<char>()};
@@ -216,4 +217,7 @@ int main() {
     MessageDatabaseManager db(auth_url);
     auto counts = preprocess(db);
     aggregate(db, counts);
+} CPPTRACE_CATCH(const std::exception& e) {
+    fmt::println(stderr, "Exception of type {}: {}", cpptrace::demangle(typeid(e).name()), e.what());
+    cpptrace::from_current_exception().print();
 }
