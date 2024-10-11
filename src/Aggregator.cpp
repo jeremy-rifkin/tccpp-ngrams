@@ -166,6 +166,9 @@ void Aggregator::do_aggregation() {
     std::optional<std::chrono::year_month> last_year_month;
     auto reader = db.make_message_database_reader();
     process_messages(reader, [&](sys_ms timestamp, std::string_view content) {
+        if(timestamp >= april_fools_2023_start && timestamp <= april_fools_2023_end) { // blacklisted
+            return;
+        }
         auto date = std::chrono::year_month_day(std::chrono::floor<std::chrono::days>(timestamp));
         auto year_month = std::chrono::year_month(date.year(), date.month());
         if(!last_year_month) {

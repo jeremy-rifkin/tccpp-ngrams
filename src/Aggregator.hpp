@@ -9,6 +9,8 @@
 #include <ankerl/unordered_dense.h>
 #include <SQLiteCpp/SQLiteCpp.h>
 
+using namespace std::literals;
+
 class Aggregator {
 public:
     Aggregator(MessageDatabaseManager& db) : db(db) {}
@@ -17,6 +19,11 @@ public:
 
 private:
     static constexpr std::chrono::year_month agg_epoch{std::chrono::year(2017), std::chrono::January};
+    // april fool's 2023 is blacklisted, the logic can be expanded later if needed
+    // https://discord.com/channels/331718482485837825/331881381477089282/1091618654405283940
+    static constexpr sys_ms april_fools_2023_start{1680332568s};
+    // https://discord.com/channels/331718482485837825/1091622651723784222/1092186981724848138
+    static constexpr sys_ms april_fools_2023_end{1680468068s};
 
     MessageDatabaseManager& db;
     std::optional<SQLite::Database> aggdb; // using an optional here to defer construction

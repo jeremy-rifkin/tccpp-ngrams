@@ -23,10 +23,18 @@ MessageDatabaseReader MessageDatabaseManager::make_message_database_reader() {
     for(const auto& channel : blacklisted_channels) {
         excluded_channels.append(channel);
     }
+    bsoncxx::builder::basic::array excluded_authors;
+    for(const auto& bot_id : bot_ids) {
+        excluded_authors.append(bot_id);
+    }
     auto filter = bsoncxx::builder::basic::make_document(
         bsoncxx::builder::basic::kvp(
             "channel",
             bsoncxx::builder::basic::make_document(bsoncxx::builder::basic::kvp("$nin", excluded_channels))
+        ),
+        bsoncxx::builder::basic::kvp(
+            "author.id",
+            bsoncxx::builder::basic::make_document(bsoncxx::builder::basic::kvp("$nin", excluded_authors))
         ),
         bsoncxx::builder::basic::kvp(
             "deleted",
