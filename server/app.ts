@@ -16,45 +16,29 @@ function tokenize(part: string) {
 
 function formulate_query(part: string[], case_insensitive: boolean): [query: string, ...params: (string | number)[]] {
     const column_names = [...part.map((_, i) => `gram_${i}`)];
-    if (case_insensitive) {
-        return [
-            `
-            WITH top_ngrams AS (
-                SELECT ngram_id, ${column_names.join(", ")}
-                FROM ngrams_${column_names.length}
-                WHERE
-                    ${column_names.map(column => `LOWER(ngrams_${column_names.length}.${column}) GLOB ?`).join(" AND ")}
-                ORDER BY total DESC
-                LIMIT 10
-            )
-            SELECT
-                ${column_names.map(column => `top_ngrams.${column}`).join(", ")}, frequencies.months_since_epoch, frequencies.frequency
-            FROM frequencies
-            INNER JOIN top_ngrams ON top_ngrams.ngram_id = frequencies.ngram_id
-            ORDER BY ${column_names.map(column => `top_ngrams.${column}`).join(", ")}, frequencies.months_since_epoch;
-            `,
-            ...part.map(s => s.toLocaleLowerCase()),
-        ];
-    } else {
-        return [
-            `
-            WITH top_ngrams AS (
-                SELECT ngram_id, ${column_names.join(", ")}
-                FROM ngrams_${column_names.length}
-                WHERE
-                    ${column_names.map(column => `ngrams_${column_names.length}.${column} GLOB ?`).join(" AND ")}
-                ORDER BY total DESC
-                LIMIT 10
-            )
-            SELECT
-                ${column_names.map(column => `top_ngrams.${column}`).join(", ")}, frequencies.months_since_epoch, frequencies.frequency
-            FROM frequencies
-            INNER JOIN top_ngrams ON top_ngrams.ngram_id = frequencies.ngram_id
-            ORDER BY ${column_names.map(column => `top_ngrams.${column}`).join(", ")}, frequencies.months_since_epoch;
-            `,
-            ...part,
-        ];
-    }
+    const queries = column_names.map(column =>
+        case_insensitive
+            ? `LOWER(ngrams_${column_names.length}.${column}) GLOB ?`
+            : `ngrams_${column_names.length}.${column} GLOB ?`,
+    );
+    return [
+        `
+        WITH top_ngrams AS (
+            SELECT ngram_id, ${column_names.join(", ")}
+            FROM ngrams_${column_names.length}
+            WHERE
+                ${queries.join(" AND ")}
+            ORDER BY total DESC
+            LIMIT 10
+        )
+        SELECT
+            ${column_names.map(column => `top_ngrams.${column}`).join(", ")}, frequencies.months_since_epoch, frequencies.frequency
+        FROM frequencies
+        INNER JOIN top_ngrams ON top_ngrams.ngram_id = frequencies.ngram_id
+        ORDER BY ${column_names.map(column => `top_ngrams.${column}`).join(", ")}, frequencies.months_since_epoch;
+        `,
+        ...part.map(s => (case_insensitive ? s.toLocaleLowerCase() : s)),
+    ];
 }
 
 function do_query(part: string, case_insensitive: boolean): Promise<query_result> {
