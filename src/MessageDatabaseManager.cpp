@@ -13,7 +13,8 @@
 #include "utils.hpp"
 #include "constants.hpp"
 
-MessageDatabaseManager::MessageDatabaseManager(const std::string& auth_url) : connection(mongocxx::uri{auth_url}), db(connection["wheatley"]) {
+MessageDatabaseManager::MessageDatabaseManager(const std::string& auth_url)
+    : connection(mongocxx::uri{auth_url}), db(connection["wheatley"]) {
     load_channel_thread_stati();
 }
 
@@ -58,7 +59,10 @@ void MessageDatabaseManager::load_channel_thread_stati() {
     }
 }
 
-void MessageDatabaseManager::register_channel_info(const bsoncxx::v_noabi::document::view &doc, std::string_view id_field) {
+void MessageDatabaseManager::register_channel_info(
+    const bsoncxx::v_noabi::document::view &doc,
+    std::string_view id_field
+) {
     auto public_element = doc["public"];
     ASSERT(public_element.type() == bsoncxx::type::k_bool);
     auto is_public = public_element.get_bool();

@@ -8,7 +8,7 @@ const port = 3000;
 
 import sqlite3 from "sqlite3";
 import { encoded_query_response, encoded_query_result, query_response, query_result } from "./schema.js";
-const db = new sqlite3.Database("test.db3", sqlite3.OPEN_READONLY);
+const db = new sqlite3.Database("ngrams.db3", sqlite3.OPEN_READONLY);
 
 function tokenize(part: string) {
     return part.split(/(\s+)/).filter(e => e.trim().length > 0);
