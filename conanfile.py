@@ -12,7 +12,7 @@ class Pkg(ConanFile):
         self.requires("libassert/2.1.0")
         self.requires("mongo-cxx-driver/3.8.1")
         self.requires("unordered_dense/4.4.0")
-        self.requires("sqlitecpp/3.3.1")
+        self.requires("duckdb/1.1.2")
         self.requires("spscqueue/1.1")
 
         # conflicts

@@ -20,7 +20,7 @@ find_package(cpptrace REQUIRED)
 find_package(libassert REQUIRED)
 find_package(mongocxx REQUIRED)
 find_package(unordered_dense REQUIRED)
-find_package(SQLiteCpp REQUIRED)
+find_package(duckdb REQUIRED)
 find_package(SPSCQueue REQUIRED)
 
 # --------- Presets ---------
@@ -44,7 +44,7 @@ set(
   mongo::mongocxx_static
   mongo::bsoncxx_static
   unordered_dense::unordered_dense
-  SQLiteCpp
+  duckdb::duckdb
   SPSCQueue::SPSCQueue
 )
 

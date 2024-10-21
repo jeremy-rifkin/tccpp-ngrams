@@ -6,9 +6,10 @@ import { is_string } from "./util.js";
 const app = express();
 const port = 3000;
 
-import sqlite3 from "sqlite3";
+import duckdb from "duckdb";
 import { encoded_query_response, encoded_query_result, query_response, query_result } from "./schema.js";
-const db = new sqlite3.Database("ngrams.db3", sqlite3.OPEN_READONLY);
+const db = new duckdb.Database("ngrams.duckdb");
+const con = db.connect();
 
 function tokenize(part: string) {
     return part.split(/(\s+)/).filter(e => e.trim().length > 0);
@@ -49,25 +50,26 @@ function do_query(part: string, case_insensitive: boolean): Promise<query_result
         }
         const data: query_result = new Map();
         const [query, ...params] = formulate_query(tokenized_part, case_insensitive);
-        db.each(
+        // console.log(query);
+        con.all(
             query,
             ...params,
-            (err: any, row: { months_since_epoch: number; frequency: number } & Record<string, string>) => {
+            (err, res) => {
                 if (err) {
                     reject(err);
                 }
-                const ngram = [...Array(tokenized_part.length).keys()].map(i => row[`gram_${i}`]).join(" ");
-                if (!data.has(ngram)) {
-                    data.set(ngram, []);
+                for(const row of res) {
+                    const ngram = [...Array(tokenized_part.length).keys()].map(i => row[`gram_${i}`]).join(" ");
+                    if (!data.has(ngram)) {
+                        data.set(ngram, []);
+                    }
+                    data.get(ngram)!.push({
+                        year_month: Date.UTC(2017, row.months_since_epoch),
+                        frequency: row.frequency,
+                    });
                 }
-                data.get(ngram)!.push({
-                    year_month: Date.UTC(2017, row.months_since_epoch),
-                    frequency: row.frequency,
-                });
-            },
-            () => {
                 resolve(data);
-            },
+            }
         );
     });
 }
