@@ -66,7 +66,10 @@ void Aggregator::preprocess() {
     // reconsidering later, e.g. by trimming periodically or by using some streaming setup to better estimate
     // the ngrams we care about.
     auto reader = db.make_message_database_reader();
-    process_messages(reader, [&](sys_ms, std::string_view content) {
+    process_messages(reader, [&](sys_ms timestamp, std::string_view content) {
+        if(blacklisted_timestamp(timestamp)) {
+            return;
+        }
         ngrams(content, [&](const ngram_window& ngram) {
             indexinator<ngram_max_width>([&] <auto I> {
                 if(auto value = ngram.subview<I + 1>()) {
@@ -166,7 +169,7 @@ void Aggregator::do_aggregation() {
     std::optional<std::chrono::year_month> last_year_month;
     auto reader = db.make_message_database_reader();
     process_messages(reader, [&](sys_ms timestamp, std::string_view content) {
-        if(timestamp >= april_fools_2023_start && timestamp <= april_fools_2023_end) { // blacklisted
+        if(blacklisted_timestamp(timestamp)) {
             return;
         }
         auto date = std::chrono::year_month_day(std::chrono::floor<std::chrono::days>(timestamp));
@@ -208,4 +211,8 @@ void Aggregator::setup_indices() {
     });
     aggdb->exec("CREATE INDEX frequencies_ngram_id ON frequencies(ngram_id);");
     aggdb->exec("CREATE INDEX frequencies_months_since_epoch ON frequencies(months_since_epoch);");
+}
+
+bool Aggregator::blacklisted_timestamp(sys_ms timestamp) {
+    return timestamp >= april_fools_2023_start && timestamp <= april_fools_2023_end;
 }
