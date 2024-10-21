@@ -16,7 +16,7 @@ function tokenize(part: string) {
 
 function formulate_query(part: string[], case_insensitive: boolean): [query: string, ...params: (string | number)[]] {
     const column_names = [...part.map((_, i) => `gram_${i}`)];
-    const queries = column_names.map(column =>
+    const conditions = column_names.map(column =>
         case_insensitive
             ? `LOWER(ngrams_${column_names.length}.${column}) GLOB ?`
             : `ngrams_${column_names.length}.${column} GLOB ?`,
@@ -27,7 +27,7 @@ function formulate_query(part: string[], case_insensitive: boolean): [query: str
             SELECT ngram_id, ${column_names.join(", ")}
             FROM ngrams_${column_names.length}
             WHERE
-                ${queries.join(" AND ")}
+                ${conditions.join(" AND ")}
             ORDER BY total DESC
             LIMIT 10
         )
