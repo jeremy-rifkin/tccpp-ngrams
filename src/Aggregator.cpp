@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <filesystem>
 #include <ranges>
+#include <stdexcept>
 
 #include "MessageDatabaseReader.hpp"
 #include "MessageDatabaseManager.hpp"
@@ -15,7 +16,7 @@
 #include <fmt/format.h>
 #include <libassert/assert.hpp>
 #include <spdlog/spdlog.h>
-#include <SQLiteCpp/SQLiteCpp.h>
+#include <duckdb.hpp>
 
 template<typename C>
 void process_messages(MessageDatabaseReader& reader, const C& callback) {
@@ -51,6 +52,7 @@ void Aggregator::run() {
 
     spdlog::info("Preparing db");
     setup_database();
+    spdlog::info("Populating ngram tables");
     populate_ngram_tables();
 
     spdlog::info("Aggregating");
@@ -92,17 +94,17 @@ void Aggregator::setup_ngram_maps() {
 }
 
 void Aggregator::setup_database() {
-    spdlog::info("Preparing db");
-    if(std::filesystem::exists("ngrams.db3")) {
-        std::filesystem::remove("ngrams.db3");
+    if(std::filesystem::exists("ngrams.duckdb")) {
+        std::filesystem::remove("ngrams.duckdb");
     }
-    aggdb.emplace("ngrams.db3", SQLite::OPEN_READWRITE | SQLite::OPEN_CREATE);
-    aggdb->exec("CREATE TABLE frequencies (months_since_epoch INTEGER, ngram_id INTEGER, frequency REAL)");
+    aggdb.emplace("ngrams.duckdb");
+    con.emplace(*aggdb);
+    do_query("CREATE TABLE frequencies (months_since_epoch INTEGER, ngram_id INTEGER, frequency REAL)");
     indexinator<ngram_max_width>([&] <auto I> {
         auto text_columns = std::ranges::iota_view{std::size_t(0), I + 1} | std::views::transform([](auto i) {
             return fmt::format("gram_{}", i);
         });
-        aggdb->exec(
+        do_query(
             fmt::format(
                 "CREATE TABLE ngrams_{} (ngram_id INTEGER PRIMARY KEY, {}, total INTEGER)",
                 I + 1,
@@ -117,51 +119,35 @@ void Aggregator::setup_database() {
 
 void Aggregator::populate_ngram_tables() {
     indexinator<ngram_max_width>([&] <auto I> {
-        auto text_columns = std::ranges::iota_view{std::size_t(0), I + 1} | std::views::transform([](auto i) {
-            return fmt::format("gram_{}", i);
-        });
-        auto query = fmt::format(
-            "INSERT INTO ngrams_{} (ngram_id, {}, total) VALUES (?, {}, ?)",
-            I + 1,
-            fmt::join(text_columns, ", "),
-            fmt::join(text_columns | std::views::transform([](auto&&){ return '?'; }), ", ")
-        );
-        SQLite::Statement ngram_insert = SQLite::Statement{*aggdb, query};
-        SQLite::Transaction transaction(*aggdb);
+        duckdb::Appender appender(*con, fmt::format("ngrams_{}", I + 1));
         for(const auto& [ngram, entry] : std::get<I>(counts)) {
-            ngram_insert.bind(1, entry.id);
-            for(const auto& [i, gram] : std::views::enumerate(ngram)) {
-                ngram_insert.bind(2 + i, gram);
-            }
-            ngram_insert.bind(2 + ngram.size(), std::get<I>(preprocessed_counts).at(ngram));
-            ngram_insert.exec();
-            ngram_insert.reset();
+            [&]<std::size_t... NI>(std::index_sequence<NI...>) {
+                appender.AppendRow(
+                    int64_t(entry.id),
+                    (duckdb::Value(ngram[NI]))...,
+                    int64_t(std::get<I>(preprocessed_counts).at(ngram))
+                );
+            }(std::make_index_sequence<I + 1>{});
         }
-        transaction.commit();
     });
 }
 
 void Aggregator::do_flush(std::chrono::year_month date, std::uint64_t total_for_month) {
-    SQLite::Statement frequency_insert {
-        *aggdb,
-        "INSERT INTO frequencies (months_since_epoch, ngram_id, frequency) VALUES (?, ?, ?)"
-    };
-    SQLite::Transaction transaction(*aggdb);
+    duckdb::Appender appender(*con, "frequencies");
     indexinator<ngram_max_width>([&] <auto I> {
         for(auto& [k, entry] : std::get<I>(counts)) {
             if(entry.count == 0) {
                 continue;
             }
             auto months_since_epoch = date - agg_epoch;
-            frequency_insert.bind(1, months_since_epoch.count());
-            frequency_insert.bind(2, entry.id);
-            frequency_insert.bind(3, entry.count / double(total_for_month));
-            frequency_insert.exec();
-            frequency_insert.reset();
+            appender.AppendRow(
+                months_since_epoch.count(),
+                int64_t(entry.id),
+                entry.count / double(total_for_month)
+            );
             entry.count = 0;
         }
     });
-    transaction.commit();
 }
 
 void Aggregator::do_aggregation() {
@@ -203,16 +189,22 @@ void Aggregator::setup_indices() {
         auto text_columns = std::ranges::iota_view{std::size_t(0), I + 1} | std::views::transform([](auto i) {
             return fmt::format("gram_{}", i);
         });
-        aggdb->exec(fmt::format("CREATE INDEX ngrams_{0}_ngram_id ON ngrams_{0}(ngram_id);", I + 1));
+        do_query(fmt::format("CREATE INDEX ngrams_{0}_ngram_id ON ngrams_{0}(ngram_id);", I + 1));
         for(const auto& column : text_columns) {
-            aggdb->exec(fmt::format("CREATE INDEX ngrams_{0}_{1} ON ngrams_{0}({1});", I + 1, column));
+            do_query(fmt::format("CREATE INDEX ngrams_{0}_{1} ON ngrams_{0}({1});", I + 1, column));
         }
-        aggdb->exec(fmt::format("CREATE INDEX ngrams_{0}_total ON ngrams_{0}(total);", I + 1));
+        do_query(fmt::format("CREATE INDEX ngrams_{0}_total ON ngrams_{0}(total);", I + 1));
     });
-    aggdb->exec("CREATE INDEX frequencies_ngram_id ON frequencies(ngram_id);");
-    aggdb->exec("CREATE INDEX frequencies_months_since_epoch ON frequencies(months_since_epoch);");
+    do_query("CREATE INDEX frequencies_ngram_id ON frequencies(ngram_id);");
+    do_query("CREATE INDEX frequencies_months_since_epoch ON frequencies(months_since_epoch);");
 }
 
 bool Aggregator::blacklisted_timestamp(sys_ms timestamp) {
     return timestamp >= april_fools_2023_start && timestamp <= april_fools_2023_end;
+}
+
+void Aggregator::do_query(const std::string& query) {
+    if(const auto result = con->Query(query); result->HasError()) {
+        throw std::runtime_error(result->GetError());
+    }
 }

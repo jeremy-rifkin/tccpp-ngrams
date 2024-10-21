@@ -7,7 +7,7 @@
 #include "utils.hpp"
 
 #include <ankerl/unordered_dense.h>
-#include <SQLiteCpp/SQLiteCpp.h>
+#include <duckdb.hpp>
 
 using namespace std::literals;
 
@@ -26,7 +26,8 @@ private:
     static constexpr sys_ms april_fools_2023_end{1680468068s};
 
     MessageDatabaseManager& db;
-    std::optional<SQLite::Database> aggdb; // using an optional here to defer construction
+    std::optional<duckdb::DuckDB> aggdb; // using an optional here to defer construction
+    std::optional<duckdb::Connection> con; // using an optional here to defer construction
     struct augmented_entry {
         std::uint32_t id;
         std::uint32_t count;
@@ -57,6 +58,8 @@ private:
     void setup_indices();
 
     bool blacklisted_timestamp(sys_ms timestamp);
+
+    void do_query(const std::string& query);
 };
 
 #endif
