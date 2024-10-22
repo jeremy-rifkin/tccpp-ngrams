@@ -12,6 +12,7 @@ class App {
     query_input: HTMLInputElement;
     case_insensitive_button: HTMLElement;
     chart: HTMLElement;
+    timing: HTMLElement;
 
     query: string;
     case_insensitive = false;
@@ -23,6 +24,7 @@ class App {
         this.case_insensitive_button = document.getElementById("case-insensitive")!;
         this.case_insensitive_button.addEventListener("click", this.case_insensitive_button_press.bind(this), false);
         this.chart = document.getElementById("chart")!;
+        this.timing = document.getElementById("timing")!;
         this.do_query();
     }
 
@@ -41,10 +43,11 @@ class App {
         return Date.UTC(this.first_bucket[0], this.first_bucket[1] + months);
     }
 
-    prepare_data(raw_data: encoded_query_response) {
+    prepare_data(response: encoded_query_response) {
         // we get an array of results for each part of the query
         // we want to consolidate down to a single dict, keeping the order (we use that for the color domain)
-        const consolidated_result: query_result = new Map(raw_data.flat(1));
+        this.timing.innerHTML = `Query time: ${response.time} ms`;
+        const consolidated_result: query_result = new Map(response.series.flat(1));
         const last_bucket = Math.max(
             ...[...consolidated_result.values()].map(series => Math.max(...series.map(entry => entry.year_month))),
         );

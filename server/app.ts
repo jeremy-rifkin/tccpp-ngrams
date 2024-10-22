@@ -92,10 +92,14 @@ app.get("/query", (req, res) => {
         res.status(500);
         res.end();
     } else {
+        const start = Date.now();
         handle_query(raw_query, case_insensitive)
             .then((data: query_response) => {
                 res.setHeader("Content-Type", "application/json");
-                res.end(JSON.stringify(data.map(result => Array.from(result)) as encoded_query_response));
+                res.end(JSON.stringify({
+                    series: data.map(result => Array.from(result)) as encoded_query_result[],
+                    time: Date.now() - start
+                } as encoded_query_response));
             })
             .catch(() => {
                 res.status(500);
