@@ -57,6 +57,11 @@ function do_query(part: string, case_insensitive: boolean): Promise<query_result
             (err, res) => {
                 if (err) {
                     reject(err);
+                    return;
+                }
+                if (res === undefined) {
+                    reject(new Error("Internal error"));
+                    return;
                 }
                 for(const row of res) {
                     const ngram = [...Array(tokenized_part.length).keys()].map(i => row[`gram_${i}`]).join(" ");
@@ -75,7 +80,7 @@ function do_query(part: string, case_insensitive: boolean): Promise<query_result
 }
 
 async function handle_query(raw_query: string, case_insensitive: boolean): Promise<query_response> {
-    const parts = raw_query.split(",").map(q => q.trim());
+    const parts = raw_query.split(",").map(q => q.trim()).filter(q => q !== "");
     const data = await Promise.all(parts.map(part => do_query(part, case_insensitive)));
     return data;
 }
