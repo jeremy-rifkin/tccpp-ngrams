@@ -1,6 +1,7 @@
 #ifndef UTILS_HPP
 #define UTILS_HPP
 
+#include <algorithm>
 #include <initializer_list>
 #include <optional>
 #include <string_view>
@@ -27,6 +28,16 @@ It last(It begin, It end) {
         } else {
             last = cursor;
         }
+    }
+}
+
+constexpr std::size_t snowflake_max_length = 19;
+constexpr std::size_t snowflake_min_length = 17;
+inline bool looks_like_snowflake(std::string_view str) {
+    if(str.size() >= snowflake_min_length && str.size() <= snowflake_max_length) {
+        return std::ranges::all_of(str, [](char c){ return isdigit(c); });
+    } else {
+        return false;
     }
 }
 
@@ -198,6 +209,10 @@ public:
         return cursor;
     }
 
+    void clear() {
+        cursor = 0;
+    }
+
     const T& operator[](std::size_t i) const {
         return grams[i];
     }
@@ -262,6 +277,10 @@ void ngrams(std::string_view str, const C& callback) {
             continue;
         }
         gram.remove_suffix(gram.size() - end_pos - 1);
+        if(looks_like_snowflake(gram)) {
+            container.clear();
+            continue;
+        }
         container.push(gram);
         callback(container);
     }
