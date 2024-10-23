@@ -207,18 +207,36 @@ class App {
         this.chart.append(plot);
     }
 
+    set_error(error: string) {
+        this.error.innerHTML = error;
+        this.error.removeAttribute("class");
+    }
+
+    clear_error() {
+        this.error.setAttribute("class", "invisible");
+    }
+
     do_query() {
+        this.timing.innerHTML = `Querying...`;
         http_get(
             `/query?q=${encodeURIComponent(this.query)}&ci=${this.case_insensitive}&combine=${this.combine}`,
-            (res: string) => {
-                const raw_data = JSON.parse(res) as encoded_query_response;
-                if(raw_data.error) {
-                    this.error.innerHTML = raw_data.error;
-                    this.error.removeAttribute("class");
-                } else {
-                    this.error.setAttribute("class", "invisible");
+            (res: string | Error) => {
+                if(res instanceof Error) {
+                    this.set_error(res.message);
+                    return;
                 }
-                this.render_chart(raw_data);
+                try {
+                    const raw_data = JSON.parse(res) as encoded_query_response;
+                    if(raw_data.error) {
+                        this.set_error(raw_data.error);
+                    } else {
+                        this.clear_error();
+                    }
+                    this.render_chart(raw_data);
+                } catch(e) {
+                    this.set_error(`Internal error ${e}`);
+                    console.log(e);
+                }
             },
         );
     }
