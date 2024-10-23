@@ -50,9 +50,12 @@ body {
         padding: 5px;
         border: 2px solid rgb(185, 185, 185);
         border-radius: 20px;
-        margin-left: 20px;
+        margin-left: 10px;
         background: white;
         cursor: pointer;
+        &:first-of-type {
+            margin-left: 20px;
+        }
         &.on {
             border: 2px solid rgb(76, 174, 255);
             color: rgb(76, 174, 255);

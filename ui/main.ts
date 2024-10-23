@@ -11,11 +11,13 @@ class App {
     static readonly first_bucket: [number, number] = [2017, 6]; // july 2017
     query_input: HTMLInputElement;
     case_insensitive_button: HTMLElement;
+    combine_button: HTMLElement;
     chart: HTMLElement;
     timing: HTMLElement;
 
     query: string;
     case_insensitive = false;
+    combine = false;
 
     constructor() {
         this.query_input = document.getElementById("query")! as HTMLInputElement;
@@ -23,6 +25,8 @@ class App {
         this.query_input.addEventListener("keyup", debounce(this.query_keystroke.bind(this), 500), false);
         this.case_insensitive_button = document.getElementById("case-insensitive")!;
         this.case_insensitive_button.addEventListener("click", this.case_insensitive_button_press.bind(this), false);
+        this.combine_button = document.getElementById("combine-series")!;
+        this.combine_button.addEventListener("click", this.combine_button_press.bind(this), false);
         this.chart = document.getElementById("chart")!;
         this.timing = document.getElementById("timing")!;
         this.do_query();
@@ -31,6 +35,12 @@ class App {
     case_insensitive_button_press() {
         this.case_insensitive = !this.case_insensitive;
         this.case_insensitive_button.setAttribute("class", this.case_insensitive ? "on" : "");
+        this.do_query();
+    }
+
+    combine_button_press() {
+        this.combine = !this.combine;
+        this.combine_button.setAttribute("class", this.combine ? "on" : "");
         this.do_query();
     }
 
@@ -196,10 +206,13 @@ class App {
     }
 
     do_query() {
-        http_get(`/query?q=${encodeURIComponent(this.query)}&ci=${this.case_insensitive}`, (res: string) => {
-            const raw_data = JSON.parse(res) as encoded_query_response;
-            this.render_chart(raw_data);
-        });
+        http_get(
+            `/query?q=${encodeURIComponent(this.query)}&ci=${this.case_insensitive}&combine=${this.combine}`,
+            (res: string) => {
+                const raw_data = JSON.parse(res) as encoded_query_response;
+                this.render_chart(raw_data);
+            },
+        );
     }
 }
 
