@@ -5,4 +5,5 @@ export type encoded_query_result = [string, entry[]][];
 export type encoded_query_response = {
     series: encoded_query_result[];
     time: number;
+    error?: string;
 };

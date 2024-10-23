@@ -12,6 +12,7 @@ class App {
     query_input: HTMLInputElement;
     case_insensitive_button: HTMLElement;
     combine_button: HTMLElement;
+    error: HTMLElement;
     chart: HTMLElement;
     timing: HTMLElement;
 
@@ -27,6 +28,7 @@ class App {
         this.case_insensitive_button.addEventListener("click", this.case_insensitive_button_press.bind(this), false);
         this.combine_button = document.getElementById("combine-series")!;
         this.combine_button.addEventListener("click", this.combine_button_press.bind(this), false);
+        this.error = document.getElementById("error")!;
         this.chart = document.getElementById("chart")!;
         this.timing = document.getElementById("timing")!;
         this.do_query();
@@ -210,6 +212,12 @@ class App {
             `/query?q=${encodeURIComponent(this.query)}&ci=${this.case_insensitive}&combine=${this.combine}`,
             (res: string) => {
                 const raw_data = JSON.parse(res) as encoded_query_response;
+                if(raw_data.error) {
+                    this.error.innerHTML = raw_data.error;
+                    this.error.removeAttribute("class");
+                } else {
+                    this.error.setAttribute("class", "invisible");
+                }
                 this.render_chart(raw_data);
             },
         );
