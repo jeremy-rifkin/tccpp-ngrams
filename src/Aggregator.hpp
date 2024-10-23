@@ -55,7 +55,6 @@ private:
     void populate_ngram_tables();
     void do_flush(std::chrono::year_month date, std::uint64_t total_for_month);
     void do_aggregation();
-    void setup_indices();
 
     bool blacklisted_timestamp(sys_ms timestamp);
 

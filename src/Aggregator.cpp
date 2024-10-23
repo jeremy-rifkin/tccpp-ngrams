@@ -58,8 +58,6 @@ void Aggregator::run() {
     spdlog::info("Aggregating");
     do_aggregation();
 
-    spdlog::info("Finished aggregating, creating indexes");
-    setup_indices();
     spdlog::info("Finished");
 }
 
@@ -182,21 +180,6 @@ void Aggregator::do_aggregation() {
             });
         });
     });
-}
-
-void Aggregator::setup_indices() {
-    indexinator<ngram_max_width>([&] <auto I> {
-        auto text_columns = std::ranges::iota_view{std::size_t(0), I + 1} | std::views::transform([](auto i) {
-            return fmt::format("gram_{}", i);
-        });
-        do_query(fmt::format("CREATE INDEX ngrams_{0}_ngram_id ON ngrams_{0}(ngram_id);", I + 1));
-        for(const auto& column : text_columns) {
-            do_query(fmt::format("CREATE INDEX ngrams_{0}_{1} ON ngrams_{0}({1});", I + 1, column));
-        }
-        do_query(fmt::format("CREATE INDEX ngrams_{0}_total ON ngrams_{0}(total);", I + 1));
-    });
-    do_query("CREATE INDEX frequencies_ngram_id ON frequencies(ngram_id);");
-    do_query("CREATE INDEX frequencies_months_since_epoch ON frequencies(months_since_epoch);");
 }
 
 bool Aggregator::blacklisted_timestamp(sys_ms timestamp) {
