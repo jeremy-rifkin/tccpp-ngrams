@@ -221,19 +221,19 @@ class App {
         http_get(
             `/query?q=${encodeURIComponent(this.query)}&ci=${this.case_insensitive}&combine=${this.combine}`,
             (res: string | Error) => {
-                if(res instanceof Error) {
+                if (res instanceof Error) {
                     this.set_error(res.message);
                     return;
                 }
                 try {
                     const raw_data = JSON.parse(res) as encoded_query_response;
-                    if(raw_data.error) {
+                    if (raw_data.error) {
                         this.set_error(raw_data.error);
                     } else {
                         this.clear_error();
                     }
                     this.render_chart(raw_data);
-                } catch(e) {
+                } catch (e) {
                     this.set_error(`Internal error ${e}`);
                     console.log(e);
                 }

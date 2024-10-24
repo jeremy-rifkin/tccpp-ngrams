@@ -120,10 +120,10 @@ async function handle_query(raw_query: string, options: query_options): Promise<
         .filter(q => q !== "")
         .map(tokenize);
     // verifications
-    if(parts.length > 10) {
+    if (parts.length > 10) {
         throw new QueryError("Query has too many parts (max 10)");
     }
-    for(const part of parts) {
+    for (const part of parts) {
         if (part.length > 5) {
             throw new QueryError(`Query part "${part.join(" ")}" has too many words`);
         }
@@ -157,13 +157,15 @@ app.get("/query", (req, res) => {
             })
             .catch(e => {
                 res.status(500);
-                if(e instanceof QueryError) {
+                if (e instanceof QueryError) {
                     M.debug("QueryError:", e.message);
-                    res.end(JSON.stringify({
-                        series: [],
-                        time: Date.now() - start,
-                        error: e.message
-                    } as encoded_query_response));
+                    res.end(
+                        JSON.stringify({
+                            series: [],
+                            time: Date.now() - start,
+                            error: e.message,
+                        } as encoded_query_response),
+                    );
                 } else {
                     M.error("Error while handling query", e);
                     res.end();
