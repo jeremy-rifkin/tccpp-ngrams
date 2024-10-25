@@ -1,4 +1,4 @@
-name: eslint
+name: build and test all
 
 on:
   push:
@@ -10,6 +10,9 @@ jobs:
     steps:
       - name: checkout
         uses: actions/checkout@v3
+      - name: dependencies
+        run: |
+          sudo apt install -y ninja-build
       - name: app build
         run: |
           make build
