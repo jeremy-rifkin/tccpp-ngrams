@@ -24,3 +24,20 @@ export function debounce(callback: (...args: any[]) => void, wait: number) {
         }, wait);
     };
 }
+
+export function round_down(n: number, p: number) {
+    return Math.floor(n * Math.pow(10, p)) / Math.pow(10, p);
+}
+
+export function round_down_exponential(n: number, digits: number) {
+    if (isNaN(n)) {
+        return "NaN";
+    } else if (!isFinite(n)) {
+        return n < 0 ? "-inf" : "+inf";
+    } else if (n === 0) {
+        return "0e+0";
+    }
+    const exponent = Math.floor(Math.log10(Math.abs(n)));
+    const coefficient = round_down(n / Math.pow(10, exponent), digits);
+    return `${coefficient}e${exponent >= 0 ? "+" : ""}${exponent}`;
+}

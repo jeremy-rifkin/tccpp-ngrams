@@ -5,7 +5,7 @@ import * as d3 from "d3";
 import * as Plot from "@observablehq/plot";
 
 import { encoded_query_response, entry, query_response, query_result } from "../server/schema.js";
-import { debounce, http_get } from "./utils";
+import { debounce, http_get, round_down_exponential } from "./utils";
 import { occlusionY } from "./occlusion";
 
 class App {
@@ -13,6 +13,7 @@ class App {
     query_input: HTMLInputElement;
     case_insensitive_button: HTMLElement;
     combine_button: HTMLElement;
+    smooth_button: HTMLElement;
     error: HTMLElement;
     chart: HTMLElement;
     timing: HTMLElement;
@@ -20,6 +21,12 @@ class App {
     query: string;
     case_insensitive = false;
     combine = false;
+    smooth = false;
+
+    last_query_res: encoded_query_response = {
+        series: [],
+        time: 0,
+    };
 
     constructor() {
         this.query_input = document.getElementById("query")! as HTMLInputElement;
@@ -29,6 +36,8 @@ class App {
         this.case_insensitive_button.addEventListener("click", this.case_insensitive_button_press.bind(this), false);
         this.combine_button = document.getElementById("combine-series")!;
         this.combine_button.addEventListener("click", this.combine_button_press.bind(this), false);
+        this.smooth_button = document.getElementById("smooth")!;
+        this.smooth_button.addEventListener("click", this.smooth_button_press.bind(this), false);
         this.error = document.getElementById("error")!;
         this.chart = document.getElementById("chart")!;
         this.timing = document.getElementById("timing")!;
@@ -44,6 +53,12 @@ class App {
     combine_button_press() {
         this.combine = !this.combine;
         this.combine_button.setAttribute("class", this.combine ? "on" : "");
+        this.do_query();
+    }
+
+    smooth_button_press() {
+        this.smooth = !this.smooth;
+        this.smooth_button.setAttribute("class", this.smooth ? "on" : "");
         this.do_query();
     }
 
@@ -92,8 +107,8 @@ class App {
         ];
     }
 
-    render_chart(raw_data: encoded_query_response) {
-        const [domain, data] = this.prepare_data(raw_data);
+    render_chart() {
+        const [domain, data] = this.prepare_data(this.last_query_res);
         const plot = Plot.plot({
             grid: true,
             width: 1500,
@@ -104,30 +119,51 @@ class App {
             marginRight: 100,
             color: { legend: data.length > 0, className: "legend-text", domain } as Plot.ScaleOptions,
             marks: [
-                Plot.lineY(data, {
-                    x: "date",
-                    y: "frequency",
-                    stroke: "ngram",
-                    z: "ngram",
+                // the series
+                Plot.lineY(
+                    data,
+                    Plot.windowY(
+                        { k: this.smooth ? 5 : 1, anchor: "middle", strict: false },
+                        {
+                            x: "date",
+                            y: "frequency",
+                            stroke: "ngram",
+                            z: "ngram",
+                        },
+                    ),
+                ),
+                // format the y ticks
+                Plot.axisY({
+                    label: "Frequency",
+                    marginBottom: 10,
+                    tickFormat: value => round_down_exponential(value, 0),
                 }),
-                Plot.axisY({ label: "Frequency", marginBottom: 10, tickFormat: value => value.toExponential(0) }),
+                // labels at the end
                 Plot.text(
                     data,
                     occlusionY(
                         { minDistance: 20 },
-                        Plot.selectLast({
-                            x: "date",
-                            y: "frequency",
-                            z: "ngram",
-                            text: "ngram",
-                            fill: "ngram",
-                            textAnchor: "start",
-                            dx: 3,
-                        }),
+                        Plot.selectLast(
+                            Plot.windowY(
+                                { k: this.smooth ? 5 : 1, anchor: "middle", strict: false },
+                                {
+                                    x: "date",
+                                    y: "frequency",
+                                    z: "ngram",
+                                    text: "ngram",
+                                    fill: "ngram",
+                                    textAnchor: "start",
+                                    dx: 3,
+                                },
+                            ),
+                        ),
                     ),
                 ),
+                // cursor
                 Plot.ruleX(data, Plot.pointerX(Plot.binX({}, { x: "date", thresholds: 10000, insetTop: 20 }))),
+                // tooltip
                 // https://github.com/observablehq/plot/issues/2003
+                // TODO: Handle smoothing
                 Plot.tip(
                     data,
                     Plot.pointerX(
@@ -201,6 +237,7 @@ class App {
                         ),
                     ),
                 ),
+                // axis lines
                 Plot.ruleY([0]),
                 Plot.ruleX([Date.UTC(...App.first_bucket)]),
             ],
@@ -234,7 +271,8 @@ class App {
                     } else {
                         this.clear_error();
                     }
-                    this.render_chart(raw_data);
+                    this.last_query_res = raw_data;
+                    this.render_chart();
                 } catch (e) {
                     this.set_error(`Internal error ${e}`);
                     console.log(e);
