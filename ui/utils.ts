@@ -15,6 +15,7 @@ export function http_get(url: string, callback: (x: string | Error) => any) {
 
 // https://stackoverflow.com/questions/75988682/debounce-in-javascript
 export function debounce(callback: (...args: any[]) => void, wait: number) {
+    // eslint-disable-next-line @typescript-eslint/naming-convention
     let timeoutId: number | undefined;
     return (...args: any[]) => {
         window.clearTimeout(timeoutId);

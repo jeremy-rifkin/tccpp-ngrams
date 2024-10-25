@@ -15,7 +15,9 @@
         "start": "node build/server/app.js",
         "format": "prettier . --write",
         "format-check": "prettier . --check",
-        "format-files": "prettier . --write --ignore-unknown"
+        "format-files": "prettier . --write --ignore-unknown",
+        "lint": "eslint server ui",
+        "prepare": "husky"
     },
     "dependencies": {
         "@observablehq/plot": "^0.6.15",
@@ -43,6 +45,14 @@
         "webpack-dev-server": "^5.0.4"
     },
     "devDependencies": {
+        "@eslint/eslintrc": "^3.1.0",
+        "@eslint/js": "^9.13.0",
+        "@typescript-eslint/eslint-plugin": "^8.11.0",
+        "@typescript-eslint/parser": "^8.11.0",
+        "eslint": "^9.13.0",
+        "eslint-config-prettier": "^9.1.0",
+        "eslint-plugin-prettier": "^5.2.1",
+        "husky": "^9.1.6",
         "prettier": "^3.3.3",
         "ts-node-dev": "^2.0.0"
     }

@@ -94,6 +94,7 @@ function do_query(tokenized_part: string[], options: query_options): Promise<que
                 reject(err);
                 return;
             }
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
             if (res === undefined) {
                 reject(new Error("Internal error"));
                 return;
@@ -179,6 +180,7 @@ async function setup_webpack_dev_middlware(router: express.Router) {
     console.log(config);
     const compiler = webpack(config as any);
     app.use(
+        // eslint-disable-next-line @typescript-eslint/no-misused-promises
         webpackDevMiddlware(compiler, {
             publicPath: config.output.publicPath,
         }),
@@ -188,4 +190,4 @@ async function setup_webpack_dev_middlware(router: express.Router) {
     });
 }
 
-setup_webpack_dev_middlware(app);
+setup_webpack_dev_middlware(app).catch(console.error);

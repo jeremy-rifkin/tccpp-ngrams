@@ -1,3 +1,4 @@
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 require("./style.scss");
 
 import * as d3 from "d3";
@@ -148,6 +149,7 @@ class App {
                                 ) => {
                                     const g = d3.select(context.ownerSVGElement).append("g");
                                     const [i] = index;
+                                    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
                                     if (i !== undefined) {
                                         const data = values.title![i];
                                         g.attr(

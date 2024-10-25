@@ -25,10 +25,11 @@ good at these while Sqlite is more optimized for taking advantage of indices.
 
 # Privacy
 
-The messages used in this analysis are messages sent in public channels in the Together C & C++ Discord server.
-Messages in private channels, messages sent by bots, and deleted messages are excluded. The frequency data is an
-aggregate of processed messages on the server and thus is not tied to any particular user. Additionally, the following
-steps are taken to further ensure privacy:
+The messages used in this analysis are messages sent in public channels in the Together C & C++ Discord server. Messages
+in private channels, messages sent by bots, and deleted messages are excluded. The frequency data is an aggregate of
+processed messages on the server and thus is not tied to any particular user. Additionally, the following steps are
+taken to further ensure privacy:
+
 - [Discord snowflakes][snowflakes] (17 to 19 digit sequences used by discord to uniquely identify everything from users
   to channels to emojis) are filtered out. These most commonly appear in user mentions, which appear textually as
   `<@331718482485837825>`.
