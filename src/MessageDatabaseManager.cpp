@@ -83,6 +83,6 @@ void MessageDatabaseManager::register_channel_info(
         auto name_element = doc["name"];
         ASSERT(name_element.type() == bsoncxx::type::k_string);
         auto name = name_element.get_string().value;
-        spdlog::info("private: {} {}", id, name);
+        spdlog::debug("private: {} {}", id, name);
     }
 }
