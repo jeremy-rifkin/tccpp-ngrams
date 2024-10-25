@@ -8,6 +8,7 @@
 #include <ranges>
 #include <stdexcept>
 
+#include "constants.hpp"
 #include "MessageDatabaseReader.hpp"
 #include "MessageDatabaseManager.hpp"
 #include "utils.hpp"
@@ -41,7 +42,7 @@ void Aggregator::run() {
     spdlog::info("Finished preprocessing, 1-grams with 10 or more occurrences:");
     // indexinator<ngram_max_width>([&] <auto I> {
     //     for(const auto& [k, v] : std::get<I>(counts)) {
-    //         if(v >= 20) {
+    //         if(v >= minimum_occurrences) {
     //             fmt::println("{}\t{}", k, v);
     //         }
     //     }
@@ -78,13 +79,16 @@ void Aggregator::preprocess() {
             });
         });
     });
+    indexinator<ngram_max_width>([&] <auto I> {
+        spdlog::info("Preprocessed counts for {}-grams: {}", I + 1, std::get<I>(preprocessed_counts).size());
+    });
 }
 
 void Aggregator::setup_ngram_maps() {
     std::uint32_t id = 0;
     indexinator<ngram_max_width>([&] <auto I> {
         for(const auto& [k, v] : std::get<I>(preprocessed_counts)) {
-            if(v >= 20) {
+            if(v >= minimum_occurrences) {
                 std::get<I>(counts).emplace(k, id++);
             }
         }

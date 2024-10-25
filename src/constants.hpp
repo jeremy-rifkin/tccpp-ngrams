@@ -23,4 +23,6 @@ inline bool is_bot_id(std::string_view sv) {
     return std::ranges::contains(bot_ids, sv);
 }
 
+constexpr std::size_t minimum_occurrences = 40;
+
 #endif
