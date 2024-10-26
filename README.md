@@ -1,7 +1,13 @@
-# Together C & C++ Ngrams
+# Together C & C++ Ngrams <!-- omit in toc -->
 
 This is a project exploring the frequencies of words and phrases (ngrams) over time on the Together C & C++ discord
 server. It was inspired by the [google books ngrams project](https://books.google.com/ngrams/).
+
+## Table of Contents <!-- omit in toc -->
+
+- [About](#about)
+- [Privacy](#privacy)
+- [Future work](#future-work)
 
 # About
 
