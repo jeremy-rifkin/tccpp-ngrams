@@ -1,6 +1,6 @@
 {
     "files": ["server/app.ts"],
-    "include": ["**/*.js", "**/*.ts"],
+    "include": ["server", "ui"],
     "exclude": ["**/*.d.ts", "ui", "build"],
     "compilerOptions": {
         "target": "esnext",
@@ -14,6 +14,9 @@
         "outDir": "build/server",
         "esModuleInterop": true,
         "incremental": true,
-        "sourceMap": true
+        "sourceMap": true,
+        "isolatedModules": true,
+        "noEmit": true,
+        "skipLibCheck": true
     }
 }

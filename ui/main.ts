@@ -1,4 +1,3 @@
-// eslint-disable-next-line @typescript-eslint/no-require-imports
 import "./style.scss";
 
 import * as d3 from "d3";
