@@ -1,5 +1,5 @@
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-require("./style.scss");
+import "./style.scss";
 
 import * as d3 from "d3";
 import * as Plot from "@observablehq/plot";

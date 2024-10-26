@@ -5,6 +5,7 @@
 build/
 CMakeUserPresets.json
 node_modules/
+ui/dist
 
 scratch/
 auth.txt

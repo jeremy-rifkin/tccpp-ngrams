@@ -1,6 +1,6 @@
 import express from "express";
-import webpack from "webpack";
-import webpackDevMiddlware from "webpack-dev-middleware";
+import ViteExpress from "vite-express";
+
 import { is_string, M } from "./util.js";
 
 const app = express();
@@ -175,19 +175,10 @@ app.get("/query", (req, res) => {
     }
 });
 
-async function setup_webpack_dev_middlware(router: express.Router) {
-    const config = (await import("../webpack.config.cjs")).default;
-    console.log(config);
-    const compiler = webpack(config as any);
-    app.use(
-        // eslint-disable-next-line @typescript-eslint/no-misused-promises
-        webpackDevMiddlware(compiler, {
-            publicPath: config.output.publicPath,
-        }),
-    );
-    app.listen(port, () => {
-        console.log(`[server]: Server is running at http://localhost:${port}`);
-    });
-}
-
-setup_webpack_dev_middlware(app).catch(console.error);
+ViteExpress.config({
+    inlineViteConfig: {
+        root: "ui",
+        base: "",
+    },
+});
+ViteExpress.listen(app, 3000, () => console.log("Server is listening on port 3000..."));

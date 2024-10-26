@@ -1,6 +1,6 @@
 {
     "files": ["server/app.ts"],
-    "include": ["**/*.js", "**/*.ts", "webpack.config.cjs"],
+    "include": ["**/*.js", "**/*.ts"],
     "exclude": ["**/*.d.ts", "ui", "build"],
     "compilerOptions": {
         "target": "esnext",
