@@ -39,14 +39,6 @@ void Aggregator::run() {
     spdlog::info("Preprocessing");
     preprocess();
     spdlog::info("Finished preprocessing");
-    spdlog::info("Finished preprocessing, 1-grams with 10 or more occurrences:");
-    // indexinator<ngram_max_width>([&] <auto I> {
-    //     for(const auto& [k, v] : std::get<I>(counts)) {
-    //         if(v >= minimum_occurrences) {
-    //             fmt::println("{}\t{}", k, v);
-    //         }
-    //     }
-    // });
 
     spdlog::info("Preparing ngram maps");
     setup_ngram_maps();
@@ -90,6 +82,7 @@ void Aggregator::setup_ngram_maps() {
         for(const auto& [k, v] : std::get<I>(preprocessed_counts)) {
             if(v >= minimum_occurrences) {
                 std::get<I>(counts).emplace(k, id++);
+                spdlog::debug("{}\t{}", k, v);
             }
         }
     });

@@ -14,6 +14,7 @@ class Pkg(ConanFile):
         self.requires("unordered_dense/4.4.0")
         self.requires("duckdb/1.1.2")
         self.requires("spscqueue/1.1")
+        self.requires("lyra/1.6.1")
 
         # conflicts
         self.requires("zstd/1.5.6", override=True)

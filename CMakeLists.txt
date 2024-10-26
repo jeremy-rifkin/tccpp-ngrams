@@ -22,6 +22,7 @@ find_package(mongocxx REQUIRED)
 find_package(unordered_dense REQUIRED)
 find_package(duckdb REQUIRED)
 find_package(SPSCQueue REQUIRED)
+find_package(lyra REQUIRED)
 
 # --------- Presets ---------
 
@@ -46,6 +47,7 @@ set(
   unordered_dense::unordered_dense
   duckdb::duckdb
   SPSCQueue::SPSCQueue
+  bfg::lyra
 )
 
 set(
