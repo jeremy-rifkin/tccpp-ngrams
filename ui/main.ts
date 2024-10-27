@@ -11,7 +11,7 @@ import { occlusionY } from "./occlusion";
 
 class App {
     query_input: HTMLInputElement;
-    case_insensitive_button: HTMLElement;
+    case_sensitive_button: HTMLElement;
     combine_button: HTMLElement;
     smooth_button: HTMLElement;
     error: HTMLElement;
@@ -19,9 +19,9 @@ class App {
     timing: HTMLElement;
 
     query: string;
-    case_insensitive = false;
-    combine = false;
-    smooth = false;
+    case_sensitive = false;
+    combine = true;
+    smooth = true;
 
     last_query_res: encoded_query_response = {
         series: [],
@@ -32,8 +32,8 @@ class App {
         this.query_input = document.getElementById("query")! as HTMLInputElement;
         this.query = this.query_input.value;
         this.query_input.addEventListener("keyup", debounce(this.query_keystroke.bind(this), 500), false);
-        this.case_insensitive_button = document.getElementById("case-insensitive")!;
-        this.case_insensitive_button.addEventListener("click", this.case_insensitive_button_press.bind(this), false);
+        this.case_sensitive_button = document.getElementById("case-sensitive")!;
+        this.case_sensitive_button.addEventListener("click", this.case_sensitive_button_press.bind(this), false);
         this.combine_button = document.getElementById("combine-series")!;
         this.combine_button.addEventListener("click", this.combine_button_press.bind(this), false);
         this.smooth_button = document.getElementById("smooth")!;
@@ -41,25 +41,34 @@ class App {
         this.error = document.getElementById("error")!;
         this.chart = document.getElementById("chart")!;
         this.timing = document.getElementById("timing")!;
+
+        this.set_button_states();
+
         this.do_query();
     }
 
-    case_insensitive_button_press() {
-        this.case_insensitive = !this.case_insensitive;
-        this.case_insensitive_button.setAttribute("class", this.case_insensitive ? "on" : "");
+    case_sensitive_button_press() {
+        this.case_sensitive = !this.case_sensitive;
+        this.set_button_states();
         this.do_query();
     }
 
     combine_button_press() {
         this.combine = !this.combine;
-        this.combine_button.setAttribute("class", this.combine ? "on" : "");
+        this.set_button_states();
         this.do_query();
     }
 
     smooth_button_press() {
         this.smooth = !this.smooth;
-        this.smooth_button.setAttribute("class", this.smooth ? "on" : "");
+        this.set_button_states();
         this.render_chart();
+    }
+
+    set_button_states() {
+        this.case_sensitive_button.setAttribute("class", this.case_sensitive ? "on" : "");
+        this.combine_button.setAttribute("class", this.combine ? "on" : "");
+        this.smooth_button.setAttribute("class", this.smooth ? "on" : "");
     }
 
     query_keystroke() {
@@ -294,7 +303,7 @@ class App {
         this.timing.innerHTML = `Querying...`;
         const endpoint = `${maybe_slash(import.meta.env.BASE_URL)}query`;
         http_get(
-            `${endpoint}?q=${encodeURIComponent(this.query)}&ci=${this.case_insensitive}&combine=${this.combine}`,
+            `${endpoint}?q=${encodeURIComponent(this.query)}&ci=${!this.case_sensitive}&combine=${this.combine}`,
             (res: string | Error) => {
                 if (res instanceof Error) {
                     this.set_error(res.message);
