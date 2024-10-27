@@ -7,7 +7,7 @@ const app = express();
 const port = process.env.PORT ? parseInt(process.env.PORT) : 9595;
 
 import duckdb from "duckdb";
-import { encoded_query_response, encoded_query_result, query_response, query_result } from "./schema.js";
+import { encoded_query_response, encoded_query_result, query_response, query_result } from "../shared/schema.js";
 import assert from "assert";
 const db = new duckdb.Database("ngrams.duckdb");
 const con = db.connect();

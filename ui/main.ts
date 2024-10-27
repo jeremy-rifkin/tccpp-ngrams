@@ -4,7 +4,7 @@ import * as d3 from "d3";
 import * as Plot from "@observablehq/plot";
 import moment from "moment";
 
-import { encoded_query_response, entry, query_response, query_result } from "../server/schema.js";
+import { encoded_query_response, query_result } from "../shared/schema";
 import { debounce, http_get, round_down_exponential } from "./utils";
 import { first_bucket, last_bucket, maybe_slash } from "../shared/common";
 import { occlusionY } from "./occlusion";
