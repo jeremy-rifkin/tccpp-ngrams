@@ -12,3 +12,4 @@ auth.txt
 log.txt
 notes.txt
 *.db3
+*.duckdb
