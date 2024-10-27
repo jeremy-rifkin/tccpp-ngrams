@@ -106,6 +106,27 @@ class App {
 
     render_chart() {
         const [domain, data] = this.prepare_data(this.last_query_res);
+        const windowed = (() => {
+            const { channels } = (
+                Plot.dotY(
+                    data,
+                    Plot.windowY(
+                        { k: this.smooth ? 5 : 1, anchor: "middle", strict: false },
+                        {
+                            x: "date",
+                            y: "frequency",
+                            stroke: "ngram",
+                            z: "ngram",
+                        },
+                    ),
+                ) as Plot.Dot & { initialize: () => { channels: any } }
+            ).initialize();
+            return (i: number) => ({
+                date: channels.x.value[i],
+                frequency: channels.y.value[i],
+                ngram: channels.stroke.value[i],
+            });
+        })();
         const plot = Plot.plot({
             grid: true,
             width: 1500,
@@ -168,16 +189,17 @@ class App {
                 Plot.ruleX(data, Plot.pointerX(Plot.binX({}, { x: "date", thresholds: 10000, insetTop: 20 }))),
                 // tooltip
                 // https://github.com/observablehq/plot/issues/2003
-                // TODO: Handle smoothing
+                // https://github.com/observablehq/plot/discussions/2209
                 Plot.tip(
                     data,
                     Plot.pointerX(
                         Plot.binX(
                             {
                                 y: () => 0,
-                                title: (v: any) => v,
+                                title: (v: any) => Array.from(v, windowed),
                             },
                             {
+                                title: (_: any, i: any) => i,
                                 x: "date",
                                 y: "frequency",
                                 thresholds: 1000,
