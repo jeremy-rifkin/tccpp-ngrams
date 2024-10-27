@@ -31,3 +31,7 @@ export class M {
         console.trace();
     }
 }
+
+export function maybe_slash(str: string) {
+    return str.endsWith("/") ? str : str + "/";
+}

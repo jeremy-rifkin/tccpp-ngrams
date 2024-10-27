@@ -4,7 +4,7 @@ import ViteExpress from "vite-express";
 import { is_string, M } from "./util.js";
 
 const app = express();
-const port = 3000;
+const port = process.env.PORT ? parseInt(process.env.PORT) : 9595;
 
 import duckdb from "duckdb";
 import { encoded_query_response, encoded_query_result, query_response, query_result } from "./schema.js";
@@ -134,7 +134,7 @@ async function handle_query(raw_query: string, options: query_options): Promise<
     return data;
 }
 
-app.get("/query", (req, res) => {
+app.get("/tccpp-ngrams-eval/query", (req, res) => {
     const raw_query = req.query.q;
     const case_insensitive = req.query.ci === "true";
     const combine = req.query.combine === "true";
@@ -176,9 +176,6 @@ app.get("/query", (req, res) => {
 });
 
 ViteExpress.config({
-    inlineViteConfig: {
-        root: "ui",
-        base: "",
-    },
+    viteConfigFile: "server/vite.config.js",
 });
-ViteExpress.listen(app, 3000, () => console.log("Server is listening on port 3000..."));
+ViteExpress.listen(app, port, () => console.log(`Server is listening on port ${port}...`));

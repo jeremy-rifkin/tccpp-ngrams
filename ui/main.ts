@@ -4,7 +4,7 @@ import * as d3 from "d3";
 import * as Plot from "@observablehq/plot";
 
 import { encoded_query_response, entry, query_response, query_result } from "../server/schema.js";
-import { debounce, http_get, round_down_exponential } from "./utils";
+import { debounce, http_get, maybe_slash, round_down_exponential } from "./utils";
 import { occlusionY } from "./occlusion";
 
 class App {
@@ -256,8 +256,9 @@ class App {
 
     do_query() {
         this.timing.innerHTML = `Querying...`;
+        const endpoint = `${maybe_slash(import.meta.env.BASE_URL)}query`;
         http_get(
-            `/query?q=${encodeURIComponent(this.query)}&ci=${this.case_insensitive}&combine=${this.combine}`,
+            `${endpoint}?q=${encodeURIComponent(this.query)}&ci=${this.case_insensitive}&combine=${this.combine}`,
             (res: string | Error) => {
                 if (res instanceof Error) {
                     this.set_error(res.message);
