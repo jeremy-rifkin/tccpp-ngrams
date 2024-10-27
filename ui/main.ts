@@ -58,7 +58,7 @@ class App {
     smooth_button_press() {
         this.smooth = !this.smooth;
         this.smooth_button.setAttribute("class", this.smooth ? "on" : "");
-        this.do_query();
+        this.render_chart();
     }
 
     query_keystroke() {
