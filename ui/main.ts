@@ -4,11 +4,11 @@ import * as d3 from "d3";
 import * as Plot from "@observablehq/plot";
 
 import { encoded_query_response, entry, query_response, query_result } from "../server/schema.js";
-import { debounce, http_get, maybe_slash, round_down_exponential } from "./utils";
+import { debounce, http_get, round_down_exponential } from "./utils";
+import { first_bucket, last_bucket, maybe_slash } from "../shared/common";
 import { occlusionY } from "./occlusion";
 
 class App {
-    static readonly first_bucket: [number, number] = [2017, 6]; // july 2017
     query_input: HTMLInputElement;
     case_insensitive_button: HTMLElement;
     combine_button: HTMLElement;
@@ -67,7 +67,7 @@ class App {
     }
 
     static months_after_first_bucket(months: number) {
-        return Date.UTC(this.first_bucket[0], this.first_bucket[1] + months);
+        return Date.UTC(first_bucket[0], first_bucket[1] + months);
     }
 
     prepare_data(response: encoded_query_response) {
@@ -75,14 +75,12 @@ class App {
         // we want to consolidate down to a single dict, keeping the order (we use that for the color domain)
         this.timing.innerHTML = `Query time: ${response.time} ms`;
         const consolidated_result: query_result = new Map(response.series.flat(1));
-        const last_bucket = Math.max(
-            ...[...consolidated_result.values()].map(series => Math.max(...series.map(entry => entry.year_month))),
-        );
+        const last_bucket_ts = new Date(...last_bucket).getTime();
         // fill in gaps
         for (const series of consolidated_result.values()) {
             series.sort((a, b) => a.year_month - b.year_month);
             // there should be an entry for each moth from first bucket to last bucket, fill in gaps with 0's
-            for (let month = 0; App.months_after_first_bucket(month) <= last_bucket; month++) {
+            for (let month = 0; App.months_after_first_bucket(month) <= last_bucket_ts; month++) {
                 if (month >= series.length || App.months_after_first_bucket(month) < series[month].year_month) {
                     series.splice(month, 0, { year_month: App.months_after_first_bucket(month), frequency: 0 });
                 }
@@ -112,11 +110,19 @@ class App {
             grid: true,
             width: 1500,
             height: 800,
+            x: {
+                domain: [new Date(...first_bucket), new Date(...last_bucket)],
+            },
+            y: data.length > 0 ? {} : { domain: [0, 0.1] },
             style: { fontSize: "16px", overflow: "visible" },
             marginLeft: 50,
             marginBottom: 50,
             marginRight: 100,
-            color: { legend: data.length > 0, className: "legend-text", domain } as Plot.ScaleOptions,
+            color: {
+                legend: true,
+                className: "legend-text",
+                domain: domain.length === 0 ? [""] : domain,
+            } as Plot.ScaleOptions,
             marks: [
                 // the series
                 Plot.lineY(
@@ -238,7 +244,7 @@ class App {
                 ),
                 // axis lines
                 Plot.ruleY([0]),
-                Plot.ruleX([Date.UTC(...App.first_bucket)]),
+                Plot.ruleX([Date.UTC(...first_bucket)]),
             ],
         });
         this.chart.innerHTML = "";

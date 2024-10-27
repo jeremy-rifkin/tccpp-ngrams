@@ -1,6 +1,6 @@
 {
     "files": ["server/app.ts"],
-    "include": ["server", "ui"],
+    "include": ["server", "ui", "shared"],
     "exclude": ["**/*.d.ts", "ui", "build"],
     "compilerOptions": {
         "target": "esnext",

@@ -41,7 +41,3 @@ export function round_down_exponential(n: number, digits: number) {
     const coefficient = round_down(n / Math.pow(10, exponent), digits);
     return `${coefficient}e${exponent >= 0 ? "+" : ""}${exponent}`;
 }
-
-export function maybe_slash(str: string) {
-    return str.endsWith("/") ? str : str + "/";
-}
