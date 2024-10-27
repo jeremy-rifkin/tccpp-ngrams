@@ -12,12 +12,16 @@
 #include "MessageDatabaseReader.hpp"
 #include "MessageDatabaseManager.hpp"
 #include "utils.hpp"
+#include "utils/sha.hpp"
+#include "utils/random.hpp"
 
 #include <fmt/chrono.h>
 #include <fmt/format.h>
 #include <libassert/assert.hpp>
 #include <spdlog/spdlog.h>
 #include <duckdb.hpp>
+#include <openssl/evp.h>
+#include <xoshiro-cpp/XoshiroCpp.hpp>
 
 template<typename C>
 void process_messages(MessageDatabaseReader& reader, const C& callback) {
@@ -81,7 +85,8 @@ void Aggregator::setup_ngram_maps() {
     indexinator<ngram_max_width>([&] <auto I> {
         for(const auto& [k, v] : std::get<I>(preprocessed_counts)) {
             if(v >= minimum_occurrences) {
-                std::get<I>(counts).emplace(k, id++);
+                // this is overkill
+                std::get<I>(counts).emplace(k, augmented_entry{id++, 0, make_xoroshiro128plus(sha256(k, nonce))});
                 spdlog::debug("{}\t{}", k, v);
             }
         }
@@ -135,10 +140,12 @@ void Aggregator::do_flush(std::chrono::year_month date, std::uint64_t total_for_
                 continue;
             }
             auto months_since_epoch = date - agg_epoch;
+            double frequency = entry.count / double(total_for_month);
+            frequency += frequency * 0.01 * random_double(entry.noise_source());
             appender.AppendRow(
                 months_since_epoch.count(),
                 int64_t(entry.id),
-                entry.count / double(total_for_month)
+                frequency
             );
             entry.count = 0;
         }

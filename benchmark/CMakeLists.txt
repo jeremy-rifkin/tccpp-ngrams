@@ -1,5 +1,4 @@
 find_package(benchmark REQUIRED)
-find_package(xoshiro-cpp REQUIRED)
 
 add_custom_target(all_benchmarks)
 function(benchmark TARGET)
@@ -13,9 +12,17 @@ function(benchmark TARGET)
 endfunction()
 
 benchmark(
-  main
+  ngrams
   SOURCES
   ngrams.cpp
+  LIBS
+  aggregator_OBJ
+)
+
+benchmark(
+  sha
+  SOURCES
+  sha.cpp
   LIBS
   aggregator_OBJ
 )

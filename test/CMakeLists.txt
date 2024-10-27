@@ -16,4 +16,6 @@ test(
   unit
   SOURCES
   ngrams.cpp
+  sha.cpp
+  random.cpp
 )

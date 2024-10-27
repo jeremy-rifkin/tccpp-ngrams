@@ -16,12 +16,14 @@ using namespace std::literals;
 template<> struct fmt::formatter<lyra::cli> : ostream_formatter {};
 
 int main(int argc, char** argv) CPPTRACE_TRY {
-    std::string log_level = "info";
     bool show_help = false;
+    std::string log_level = "info";
+    std::string noise_nonce;
     auto cli = lyra::cli()
         | lyra::help(show_help)
-        | lyra::opt(log_level, "log level" )["--log-level"]("Spdlog log level")
-            .choices("trace", "debug", "info", "warn", "err", "critical", "off");
+        | lyra::opt(log_level, "log level")["--log-level"]("Spdlog log level")
+            .choices("trace", "debug", "info", "warn", "err", "critical", "off")
+        | lyra::opt(noise_nonce, "string")["--nonce"]("Nonce used for noise seeding").required();
     if(auto result = cli.parse({ argc, argv }); !result) {
         fmt::println(stderr, "Error in command line: {}", result.message());
         return 1;
@@ -39,7 +41,7 @@ int main(int argc, char** argv) CPPTRACE_TRY {
     spdlog::info("Setting up database connection");
     MessageDatabaseManager db(auth_url);
 
-    Aggregator{db}.run();
+    Aggregator{db, noise_nonce}.run();
 } CPPTRACE_CATCH(const std::exception& e) {
     fmt::println(stderr, "Caught exception {}: {}", cpptrace::demangle(typeid(e).name()), e.what());
     cpptrace::from_current_exception().print();

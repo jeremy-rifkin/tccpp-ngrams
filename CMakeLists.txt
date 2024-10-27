@@ -23,6 +23,8 @@ find_package(unordered_dense REQUIRED)
 find_package(duckdb REQUIRED)
 find_package(SPSCQueue REQUIRED)
 find_package(lyra REQUIRED)
+find_package(OpenSSL REQUIRED)
+find_package(xoshiro-cpp REQUIRED)
 
 # --------- Presets ---------
 
@@ -48,6 +50,8 @@ set(
   duckdb::duckdb
   SPSCQueue::SPSCQueue
   bfg::lyra
+  openssl::openssl
+  xoshiro-cpp::xoshiro-cpp
 )
 
 set(

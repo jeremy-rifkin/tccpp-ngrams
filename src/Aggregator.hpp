@@ -2,18 +2,20 @@
 #define AGGREGATOR_HPP
 
 #include <chrono>
+#include <string_view>
 
 #include "MessageDatabaseManager.hpp"
 #include "utils.hpp"
 
 #include <ankerl/unordered_dense.h>
 #include <duckdb.hpp>
+#include <xoshiro-cpp/XoshiroCpp.hpp>
 
 using namespace std::literals;
 
 class Aggregator {
 public:
-    Aggregator(MessageDatabaseManager& db) : db(db) {}
+    Aggregator(MessageDatabaseManager& db, std::string_view nonce) : db(db), nonce(nonce) {}
 
     void run();
 
@@ -26,11 +28,13 @@ private:
     static constexpr sys_ms april_fools_2023_end{1680468068s};
 
     MessageDatabaseManager& db;
+    std::string_view nonce;
     std::optional<duckdb::DuckDB> aggdb; // using an optional here to defer construction
     std::optional<duckdb::Connection> con; // using an optional here to defer construction
     struct augmented_entry {
         std::uint32_t id;
         std::uint32_t count;
+        XoshiroCpp::Xoroshiro128Plus noise_source;
     };
     using Counts = std::tuple<
         ngram_map<1, std::uint32_t>,
