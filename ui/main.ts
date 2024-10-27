@@ -2,6 +2,7 @@ import "./style.scss";
 
 import * as d3 from "d3";
 import * as Plot from "@observablehq/plot";
+import moment from "moment";
 
 import { encoded_query_response, entry, query_response, query_result } from "../server/schema.js";
 import { debounce, http_get, round_down_exponential } from "./utils";
@@ -155,6 +156,7 @@ class App {
                             y: "frequency",
                             stroke: "ngram",
                             z: "ngram",
+                            curve: "catmull-rom",
                         },
                     ),
                 ),
@@ -186,7 +188,12 @@ class App {
                     ),
                 ),
                 // cursor
-                Plot.ruleX(data, Plot.pointerX(Plot.binX({}, { x: "date", thresholds: 10000, insetTop: 20 }))),
+                Plot.ruleX(
+                    data,
+                    Plot.pointerX(
+                        Plot.binX({}, { x: "date", thresholds: 10000, stroke: "rgb(185, 185, 185)", strokeWidth: 2 }),
+                    ),
+                ),
                 // tooltip
                 // https://github.com/observablehq/plot/issues/2003
                 // https://github.com/observablehq/plot/discussions/2209
@@ -252,7 +259,8 @@ class App {
                                                     Plot.text([data[0]], {
                                                         frameAnchor: "top-left",
                                                         dy: -13,
-                                                        text: "date",
+                                                        dx: 3,
+                                                        text: (data: any) => moment.utc(data.date).format("MMMM YYYY"),
                                                     }),
                                                 ],
                                             }),
