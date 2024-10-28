@@ -18,10 +18,11 @@
 
             <p>
                 This is a tool for looking at trends of words and phrases over time on the Together C & C++ discord
-                server. The data is anonymized and reasonably sanitized. Most punctuation is eliminated as part of
-                tokenization. You can do queries such as <code>internal compiler error</code>,
-                <code>SFINAE, RAII</code>, <code>C is *</code>, <code>C++*</code>, etc. Standard
-                <a href="https://en.wikipedia.org/wiki/Glob_(programming)#Syntax">glob syntax</a> is supported.
+                server. The data is anonymized and reasonably sanitized. Most punctuation other than underscores and
+                hyphens are eliminated as part of tokenization and the maximum phrase length is five words. Standard
+                <a href="https://en.wikipedia.org/wiki/Glob_(programming)#Syntax">glob syntax</a> is supported so
+                queries such as <code>string*</code>, <code>std views *</code>, <code>c++??</code>, and
+                <code>r[ds]i</code> are supported.
             </p>
             <p>
                 More info:
@@ -29,7 +30,7 @@
                 <a href="https://github.com/jeremy-rifkin/tccpp-ngrams#privacy">privacy</a>.
             </p>
 
-            <input id="query" type="text" value="SFINAE, concepts" />
+            <input id="query" type="text" value="std ranges, std views, std span" />
 
             <button id="case-insensitive">Case-Insensitive</button>
             <button id="combine-series">Combine Series</button>
