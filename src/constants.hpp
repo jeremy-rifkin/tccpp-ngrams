@@ -26,4 +26,6 @@ inline bool is_bot_id(std::string_view sv) {
 
 constexpr std::size_t minimum_occurrences = 40;
 
+constexpr std::size_t ngram_max_width = 5;
+
 #endif

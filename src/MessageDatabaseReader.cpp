@@ -5,6 +5,7 @@
 #include <mongocxx/instance.hpp>
 #include <mongocxx/options/find.hpp>
 #include <mongocxx/uri.hpp>
+#include <libassert/assert.hpp>
 
 #include "utils.hpp"
 #include "constants.hpp"

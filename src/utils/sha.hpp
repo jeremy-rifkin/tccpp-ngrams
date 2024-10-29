@@ -7,7 +7,7 @@
 #include <openssl/evp.h>
 #include <openssl/sha.h>
 
-#include "utils.hpp"
+#include "ngram.hpp"
 
 // This is a really really awful hack to squeeze some more performance out of openssl's setup
 struct ShaContextManager {

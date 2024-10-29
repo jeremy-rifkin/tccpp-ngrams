@@ -5,7 +5,7 @@
 #include <string_view>
 
 #include "MessageDatabaseManager.hpp"
-#include "utils.hpp"
+#include "ngram.hpp"
 
 #include <ankerl/unordered_dense.h>
 #include <duckdb.hpp>

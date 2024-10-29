@@ -4,8 +4,8 @@
 #include <xoshiro-cpp/XoshiroCpp.hpp>
 #include <libassert/assert.hpp>
 
-#include "utils.hpp"
 #include "utils/sha.hpp"
+#include "tokenization.hpp"
 #include "common.hpp"
 
 // using the first 32 of each for trivial modulo
@@ -20,7 +20,7 @@ std::tuple<
 
 [[maybe_unused]] auto init_ngrams_for_bench = [] {
     for(const auto& message : dummy_messages) {
-        ngrams(message, [&](const ngram_window& container) {
+        tokenize(message, [&](const ngram_window& container) {
             if(auto x = container.subview<1>()) { std::get<0>(ngrams_for_bench).emplace_back(*x); }
             if(auto x = container.subview<2>()) { std::get<1>(ngrams_for_bench).emplace_back(*x); }
             if(auto x = container.subview<3>()) { std::get<2>(ngrams_for_bench).emplace_back(*x); }

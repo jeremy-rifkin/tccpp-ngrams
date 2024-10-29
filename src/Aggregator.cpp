@@ -11,6 +11,7 @@
 #include "constants.hpp"
 #include "MessageDatabaseReader.hpp"
 #include "MessageDatabaseManager.hpp"
+#include "tokenization.hpp"
 #include "utils.hpp"
 #include "utils/sha.hpp"
 #include "utils/random.hpp"
@@ -67,7 +68,7 @@ void Aggregator::preprocess() {
         if(blacklisted_timestamp(timestamp)) {
             return;
         }
-        ngrams(content, [&](const ngram_window& ngram) {
+        tokenize(content, [&](const ngram_window& ngram) {
             indexinator<ngram_max_width>([&] <auto I> {
                 if(auto value = ngram.subview<I + 1>()) {
                     std::get<I>(preprocessed_counts)[*value]++;
@@ -170,7 +171,7 @@ void Aggregator::do_aggregation() {
             total_for_month = 0;
             last_year_month = year_month;
         }
-        ngrams(content, [&](const ngram_window& ngram) {
+        tokenize(content, [&](const ngram_window& ngram) {
             indexinator<ngram_max_width>([&] <auto I> {
                 if(auto value = ngram.subview<I + 1>()) {
                     auto& the_counts = std::get<I>(counts);
