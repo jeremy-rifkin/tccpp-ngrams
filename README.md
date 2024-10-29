@@ -3,6 +3,8 @@
 This is a project exploring trends of words and phrases (ngrams) over time on the Together C & C++ discord server. It
 was inspired by the [google books ngrams project](https://books.google.com/ngrams/).
 
+![demo](./screenshots/demo.png)
+
 ## Table of Contents <!-- omit in toc -->
 
 - [About](#about)
