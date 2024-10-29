@@ -16,7 +16,8 @@ constexpr std::array bot_ids = {
 };
 
 constexpr std::array blacklisted_channels = {
-    "506274405500977153"sv // bot-spam
+    "506274405500977153"sv, // bot-spam
+    "921113903574958080"sv // serious-off-topic
 };
 
 inline bool is_bot_id(std::string_view sv) {
