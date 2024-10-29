@@ -134,7 +134,7 @@ async function handle_query(raw_query: string, options: query_options): Promise<
     return data;
 }
 
-app.get("/tccpp-ngrams-eval/query", (req, res) => {
+app.get("/tccpp-ngrams/query", (req, res) => {
     const raw_query = req.query.q;
     const case_insensitive = req.query.ci === "true";
     const combine = req.query.combine === "true";
